@@ -27,7 +27,6 @@ import static com.krakenplugins.example.script.Util.getRandomDelay;
 public class MiningScript extends BehaviorTreeScript {
 
     public static final int IRON_ORE_ID = 440;
-    public static final List<Integer> IRON_ROCK_ID = List.of(11364, 11365);
     public static final WorldPoint MINING_AREA = new WorldPoint(3287, 3367, 0);
     public static final WorldPoint BANK_AREA = new WorldPoint(3253, 3420, 0); // Varrock East bank
 
@@ -107,9 +106,7 @@ public class MiningScript extends BehaviorTreeScript {
     }
 
     @Override
-    protected void onBehaviorTreeStart() {
-        log.info("Iron Mining Script started!");
-    }
+    protected void onBehaviorTreeStart() {}
 
     @Override
     protected long onBehaviorTreeSuccess() {
@@ -118,7 +115,6 @@ public class MiningScript extends BehaviorTreeScript {
 
     @Override
     protected long onBehaviorTreeFailure() {
-        log.debug("Behavior tree iteration failed, retrying...");
         return getRandomDelay(500, 1000);
     }
 

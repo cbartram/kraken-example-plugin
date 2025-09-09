@@ -38,7 +38,7 @@ public class BankOreAction extends BaseScriptNode implements ActionNode {
             if (bankBooth != null) {
                 log.info("Opening bank booth");
                 gameObjectService.interact(bankBooth, "Bank");
-                sleepService.sleep(600, 1800);
+                sleepService.sleep(600, 900);
 
                 // Deposit all iron ore
                 if(bankService.isOpen()) {

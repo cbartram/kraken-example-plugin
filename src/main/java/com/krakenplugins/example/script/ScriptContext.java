@@ -24,4 +24,8 @@ public class ScriptContext {
                 player.getAnimation() == AnimationID.MINING_RUNE_PICKAXE ||
                 player.getAnimation() == AnimationID.MINING_DRAGON_PICKAXE;
     }
+
+    public void addOreMined() {
+        this.oreMined += 1;
+    }
 }
