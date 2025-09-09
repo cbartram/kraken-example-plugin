@@ -19,8 +19,6 @@ import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.client.eventbus.Subscribe;
 
-import java.util.Random;
-
 @Slf4j
 public class ClickRockAction extends BaseScriptNode implements ActionNode {
 
