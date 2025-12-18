@@ -24,12 +24,23 @@ public interface MiningConfig extends Config {
 		return false;
 	}
 
+	@ConfigItem(
+			keyName = "renderPath",
+			name = "Render Path",
+			description = "Show the computed path to your destination on the screen.",
+			position = 2,
+			section = general
+	)
+	default boolean renderPath() {
+		return false;
+	}
+
 	@Range(min = 1, max = 99)
 	@ConfigItem(
 			keyName = "runEnergyThreshold",
 			name = "Run Energy Min",
 			description = "Toggles your run on at a random number between the min and max threshold set here.",
-			position = 2,
+			position = 3,
 			section = general
 	)
 	default int runEnergyThresholdMin() {
@@ -41,7 +52,7 @@ public interface MiningConfig extends Config {
 			keyName = "runEnergyThresholdMax",
 			name = "Run Energy Max",
 			description = "Toggles your run on at a random number between the min and max threshold set here.",
-			position = 3,
+			position = 4,
 			section = general
 	)
 	default int runEnergyThresholdMax() {

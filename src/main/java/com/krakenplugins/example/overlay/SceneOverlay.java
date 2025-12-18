@@ -1,5 +1,6 @@
 package com.krakenplugins.example.overlay;
 
+import com.kraken.api.service.movement.Pathfinder;
 import com.krakenplugins.example.MiningConfig;
 import com.krakenplugins.example.MiningPlugin;
 import net.runelite.api.Client;
@@ -17,13 +18,16 @@ public class SceneOverlay extends Overlay {
     private final MiningPlugin plugin;
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final MiningConfig config;
+    private final Pathfinder pathfinder;
 
     @Inject
-    public SceneOverlay(Client client, MiningPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config) {
+    public SceneOverlay(Client client, MiningPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config, Pathfinder pathfinder) {
         this.client = client;
         this.plugin = plugin;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
+        this.pathfinder = pathfinder;
+
         this.setPosition(OverlayPosition.DYNAMIC);
         this.setLayer(OverlayLayer.ABOVE_WIDGETS);
         this.setPriority(OverlayPriority.HIGH);
@@ -32,6 +36,10 @@ public class SceneOverlay extends Overlay {
     public Dimension render(Graphics2D graphics) {
         if (this.client.getCanvas() == null) {
             return null;
+        }
+
+        if(config.renderPath()) {
+            pathfinder.renderPath(plugin.getCurrentPath(), graphics);
         }
 
         if(config.highlightTargetRock()) {

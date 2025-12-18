@@ -7,7 +7,6 @@ import com.kraken.api.Context;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.util.SleepService;
-import com.krakenplugins.example.overlay.MovementOverlay;
 import com.krakenplugins.example.overlay.SceneOverlay;
 import com.krakenplugins.example.overlay.ScriptOverlay;
 import com.krakenplugins.example.script.Task;
@@ -70,9 +69,6 @@ public class MiningPlugin extends Plugin {
     private MouseOverlay mouseTrackerOverlay;
 
     @Inject
-    private MovementOverlay movementOverlay;
-
-    @Inject
     private SceneOverlay sceneOverlay;
 
     @Inject
@@ -97,7 +93,7 @@ public class MiningPlugin extends Plugin {
     private FollowPathTask followPathTask;
 
     private final List<Task> tasks = new ArrayList<>();
-    private long startTime;
+    private final long startTime = System.currentTimeMillis();
 
     @Getter
     private String status = "Initializing";
@@ -136,9 +132,7 @@ public class MiningPlugin extends Plugin {
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);
-        overlayManager.add(movementOverlay);
 
-        startTime = System.currentTimeMillis();
         tasks.clear();
         tasks.addAll(List.of(
                 followPathTask,
@@ -159,7 +153,6 @@ public class MiningPlugin extends Plugin {
 
     @Subscribe
     private void onGameTick(GameTick e) {
-        log.info("Player idle: {} on tick: {}", ctx.players().local().isIdle(), ctx.getClient().getTickCount());
         script.onGameTick(e);
     }
 
