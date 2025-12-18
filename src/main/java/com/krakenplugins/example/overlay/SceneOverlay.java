@@ -1,9 +1,7 @@
 package com.krakenplugins.example.overlay;
 
-import com.kraken.api.input.VirtualMouse;
 import com.krakenplugins.example.MiningConfig;
 import com.krakenplugins.example.MiningPlugin;
-import com.krakenplugins.example.script.MiningScript;
 import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -14,16 +12,16 @@ import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 import javax.inject.Inject;
 import java.awt.*;
 
-public class TargetRockOverlay extends Overlay {
+public class SceneOverlay extends Overlay {
     private final Client client;
-    private final MiningScript miningScript;
+    private final MiningPlugin plugin;
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final MiningConfig config;
 
     @Inject
-    public TargetRockOverlay(Client client, MiningScript miningScript, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config) {
+    public SceneOverlay(Client client, MiningPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config) {
         this.client = client;
-        this.miningScript = miningScript;
+        this.plugin = plugin;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
         this.setPosition(OverlayPosition.DYNAMIC);
@@ -39,12 +37,13 @@ public class TargetRockOverlay extends Overlay {
         if(config.highlightTargetRock()) {
             renderTargetRock();
         }
+
         return null;
     }
 
     private void renderTargetRock() {
-        if(miningScript.getScriptContext().getTargetRock() != null) {
-            modelOutlineRenderer.drawOutline(miningScript.getScriptContext().getTargetRock(), 2, Color.GREEN, 2);
+        if(plugin.getTargetRock() != null) {
+            modelOutlineRenderer.drawOutline(plugin.getTargetRock(), 2, Color.GREEN, 2);
         }
     }
 }

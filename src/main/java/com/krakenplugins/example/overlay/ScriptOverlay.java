@@ -2,7 +2,7 @@ package com.krakenplugins.example.overlay;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.krakenplugins.example.script.MiningScript;
+import com.krakenplugins.example.MiningPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -16,11 +16,11 @@ public class ScriptOverlay extends OverlayPanel {
 
     private static final Color HEADER_COLOR = ColorScheme.BRAND_ORANGE;
 
-    private final MiningScript miningScript;
+    private final MiningPlugin miningPlugin;
 
     @Inject
-    private ScriptOverlay(MiningScript miningScript) {
-        this.miningScript = miningScript;
+    private ScriptOverlay(MiningPlugin miningPlugin) {
+        this.miningPlugin = miningPlugin;
         setPosition(OverlayPosition.TOP_LEFT);
     }
 
@@ -31,9 +31,9 @@ public class ScriptOverlay extends OverlayPanel {
                     .color(HEADER_COLOR)
                     .build());
             panelComponent.getChildren().add(TitleComponent.builder().text("").build());
-            addTextLine("Status: " + miningScript.getScriptContext().getStatus());
-            addTextLine("Runtime: " + miningScript.getRuntimeString());
-            addTextLine("Ore Mined: " + miningScript.getScriptContext().getOreMined());
+            addTextLine("Status: " + miningPlugin.getStatus());
+            addTextLine("Runtime: " + miningPlugin.getRuntime());
+            addTextLine("Ore Mined: " + miningPlugin.getOreMined());
         return super.render(graphics);
     }
 
@@ -44,4 +44,3 @@ public class ScriptOverlay extends OverlayPanel {
                 .build());
     }
 }
-

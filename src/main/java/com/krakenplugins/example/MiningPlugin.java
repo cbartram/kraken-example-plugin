@@ -1,69 +1,101 @@
 package com.krakenplugins.example;
 
-import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.kraken.api.overlay.MouseTrackerOverlay;
-import com.kraken.api.overlay.MovementOverlay;
+import com.kraken.api.core.script.Script;
+import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.service.util.SleepService;
+import com.krakenplugins.example.overlay.MovementOverlay;
+import com.krakenplugins.example.overlay.SceneOverlay;
 import com.krakenplugins.example.overlay.ScriptOverlay;
-import com.krakenplugins.example.overlay.TargetRockOverlay;
-import com.krakenplugins.example.script.MiningModule;
-import com.krakenplugins.example.script.MiningScript;
-import com.krakenplugins.example.script.actions.ClickRockAction;
+import com.krakenplugins.example.script.Task;
+import com.krakenplugins.example.script.state.BankingTask;
+import com.krakenplugins.example.script.state.MiningTask;
+import com.krakenplugins.example.script.state.OpenBankTask;
+import com.krakenplugins.example.script.state.WalkToMineTask;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
+import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.EventBus;
-import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.overlay.OverlayManager;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Singleton
 @PluginDescriptor(
-        name = "Mining Plugin",
+        name = "Mining Example Plugin",
         enabledByDefault = false,
         description = "Demonstrates an example of building a Mining automation plugin using the Kraken API.",
         tags = {"example", "automation", "kraken"}
 )
 public class MiningPlugin extends Plugin {
 
+    public static final WorldPoint BANK_LOCATION = new WorldPoint(3253, 3421, 0);
+    public static final WorldPoint MINE_LOCATION = new WorldPoint(3287, 3367, 0);
+    public static final int IRON_ORE_GAME_OBJECT = 11365;
+
     @Inject
-    private Client client;
+    private Script script;
 
     @Getter
     @Inject
     private ClientThread clientThread;
 
     @Inject
-    private EventBus eventBus;
-
-    @Inject
     private OverlayManager overlayManager;
-
-    // Helper Overlay for displaying movement paths from the MovementService within the API.
-    @Inject
-    private MovementOverlay movementOverlay;
 
     @Inject
     private ScriptOverlay scriptOverlay;
 
     @Inject
-    private MouseTrackerOverlay mouseTrackerOverlay;
+    private MouseOverlay mouseTrackerOverlay;
 
     @Inject
-    private TargetRockOverlay targetRockOverlay;
+    private MovementOverlay movementOverlay;
 
     @Inject
-    private MiningScript miningScript;
+    private SceneOverlay sceneOverlay;
+
+    @Inject
+    private SleepService sleepService;
+
+    @Inject
+    private MiningTask miningTask;
+
+    @Inject
+    private BankingTask bankingTask;
+
+    @Inject
+    private OpenBankTask openBankTask;
+
+    @Inject
+    private WalkToMineTask walkToMineTask;
+
+    private final List<Task> tasks = new ArrayList<>();
+    private long startTime;
+
+    @Getter
+    private String status = "Initializing";
+
+    @Getter
+    @Setter
+    private GameObject targetRock;
+
+    @Getter
+    private final List<WorldPoint> currentPath = new ArrayList<>();
 
     @Provides
     MiningConfig provideConfig(final ConfigManager configManager) {
@@ -71,49 +103,45 @@ public class MiningPlugin extends Plugin {
     }
 
     @Override
-    public void configure(final Binder binder) {
-        binder.install(new MiningModule());
-    }
-
-    @Override
     protected void startUp() {
-        // This action subscribes to runelite events and thus must be registered with the event bus.
-        eventBus.register(ClickRockAction.class);
+        script.setLoopTask(() -> {
+            for (Task task : tasks) {
+                if (task.validate()) {
+                    status = task.status();
+                    int delay = task.execute();
+                    if (delay > 0) {
+                        sleepService.sleep(delay);
+                    }
+                    break; // Execute only the highest priority valid task
+                }
+            }
+        });
 
-        overlayManager.add(movementOverlay);
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
-        overlayManager.add(targetRockOverlay);
+        overlayManager.add(sceneOverlay);
+        overlayManager.add(movementOverlay);
 
-        if (client.getGameState() == GameState.LOGGED_IN) {
-            log.info("Starting Mining Plugin...");
-            miningScript.start();
-        }
+        startTime = System.currentTimeMillis();
+        tasks.clear();
+        tasks.addAll(List.of(miningTask, bankingTask, openBankTask, walkToMineTask));
     }
 
     @Override
     protected void shutDown() {
-        overlayManager.remove(movementOverlay);
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
-        overlayManager.remove(targetRockOverlay);
-        if(miningScript.isRunning()) {
-            log.info("Shutting down Mining Plugin...");
-            miningScript.stop();
-        }
+        overlayManager.remove(sceneOverlay);
     }
 
     @Subscribe
-    private void onMenuOptionClicked(MenuOptionClicked event) {
-        log.info("Option={}, Target={}, Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, itemOp={}, str={}",
-                event.getMenuOption(), event.getMenuTarget(), event.getParam0(), event.getParam1(), event.getMenuAction().name(), event.getItemId(),
-                event.getId(), event.getItemOp(), event);
+    private void onGameTick(GameTick e) {
+        script.onGameTick(e);
     }
 
     @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
         final GameState gameState = event.getGameState();
-
         switch (gameState) {
             case LOGGED_IN:
                 startUp();
@@ -124,5 +152,17 @@ public class MiningPlugin extends Plugin {
             default:
                 break;
         }
+    }
+
+    public String getRuntime() {
+        long millis = System.currentTimeMillis() - startTime;
+        return String.format("%02d:%02d:%02d",
+                TimeUnit.MILLISECONDS.toHours(millis),
+                TimeUnit.MILLISECONDS.toMinutes(millis) % 60,
+                TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
+    }
+
+    public int getOreMined() {
+        return 0; // Placeholder: Implement tracking logic
     }
 }

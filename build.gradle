@@ -3,7 +3,7 @@ plugins {
 }
 
 def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '1.0.65'
+def krakenApiVersion = '2.0.14'
 
 group = 'com.krakenplugins'
 version = '1.0.0'
@@ -20,7 +20,6 @@ repositories {
 dependencies {
     dependencies {
         implementation group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
-        implementation group: 'com.github.cbartram', name:'shortest-path', version: '1.0.2'
         compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
         compileOnly 'org.projectlombok:lombok:1.18.30'
         annotationProcessor 'org.projectlombok:lombok:1.18.30'

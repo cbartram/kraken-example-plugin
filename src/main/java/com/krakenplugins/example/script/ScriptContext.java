@@ -17,12 +17,15 @@ public class ScriptContext {
     private String runtime = "";
     
     public boolean isPlayerMining(Player player) {
-        return player.getAnimation() == AnimationID.MINING_IRON_PICKAXE ||
+        return player.getAnimation() == AnimationID.MINING_BRONZE_PICKAXE ||
+                player.getAnimation() == AnimationID.MINING_IRON_PICKAXE ||
                 player.getAnimation() == AnimationID.MINING_STEEL_PICKAXE ||
+                player.getAnimation() == AnimationID.MINING_BLACK_PICKAXE ||
                 player.getAnimation() == AnimationID.MINING_MITHRIL_PICKAXE ||
                 player.getAnimation() == AnimationID.MINING_ADAMANT_PICKAXE ||
                 player.getAnimation() == AnimationID.MINING_RUNE_PICKAXE ||
-                player.getAnimation() == AnimationID.MINING_DRAGON_PICKAXE;
+                player.getAnimation() == AnimationID.MINING_DRAGON_PICKAXE ||
+                player.getAnimation() == AnimationID.MINING_CRYSTAL_PICKAXE;
     }
 
     public void addOreMined() {
