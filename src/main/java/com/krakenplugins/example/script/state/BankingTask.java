@@ -5,9 +5,11 @@ import com.google.inject.Singleton;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.script.AbstractTask;
+import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.MiningPlugin.BANK_LOCATION;
 
+@Slf4j
 @Singleton
 public class BankingTask extends AbstractTask {
 
@@ -26,9 +28,10 @@ public class BankingTask extends AbstractTask {
 
     @Override
     public int execute() {
-          ctx.bankInventory().withName("Iron ore").first().depositAll();
-          sleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
-          return 1000;
+        ctx.bankInventory().withName("Iron ore").first().depositAll();
+        sleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
+        bankService.close();
+        return 1000;
     }
 
     @Override

@@ -42,7 +42,7 @@ public class MiningTask extends AbstractTask {
         if(isPlayerMining(ctx.players().local().raw())) {
             sleepService.sleepUntil(() -> ctx.players().local().isIdle(), 7000);
         }
-        return 3200;
+        return 6400;
     }
 
     public boolean isPlayerMining(Player player) {

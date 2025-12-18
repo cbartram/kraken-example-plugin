@@ -28,7 +28,9 @@ public class FollowPathTask extends AbstractTask {
     public int execute() {
         WorldPoint nextPoint = plugin.getCurrentPath().get(0);
 
-        if (ctx.players().local().raw().getWorldLocation().distanceTo(nextPoint) < 12) {
+        // TODO Needs to take larger "leaps" this waits 8 ticks before it even clicks a point,
+        // instead click a super far away point on the path so char is moving
+        if (ctx.players().local().raw().getWorldLocation().distanceTo(nextPoint) < 8) {
             plugin.getCurrentPath().remove(0);
             stuckCounter = 0;
             lastPosition = null;
