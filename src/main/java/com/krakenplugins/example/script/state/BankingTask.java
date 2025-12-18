@@ -19,6 +19,9 @@ public class BankingTask extends AbstractTask {
     @Inject
     private SleepService sleepService;
 
+    @Inject
+    private WalkToBankTask walkToBankTask;
+
     @Override
     public boolean validate() {
         boolean playerInventoryFull = ctx.inventory().isFull();
@@ -31,6 +34,7 @@ public class BankingTask extends AbstractTask {
         ctx.bankInventory().withName("Iron ore").first().depositAll();
         sleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
         bankService.close();
+        walkToBankTask.setArrivedAtIntermediatePoint(false);
         return 1000;
     }
 

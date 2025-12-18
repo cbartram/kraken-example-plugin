@@ -6,11 +6,14 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.MiningPlugin;
 import com.krakenplugins.example.script.AbstractTask;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Player;
 
-import static com.krakenplugins.example.MiningPlugin.IRON_ORE_GAME_OBJECT;
+import static com.krakenplugins.example.MiningPlugin.IRON_ORE_DEPLETED_GAME_OBJECTS;
+import static com.krakenplugins.example.MiningPlugin.IRON_ORE_GAME_OBJECTS;
 import static com.krakenplugins.example.MiningPlugin.MINE_LOCATION;
 
+@Slf4j
 @Singleton
 public class MiningTask extends AbstractTask {
 
@@ -25,27 +28,61 @@ public class MiningTask extends AbstractTask {
         boolean playerInMiningArea = ctx.players().local().isInArea(MINE_LOCATION);
         boolean inventoryHasSpace = !ctx.inventory().isFull();
         boolean isIdle = ctx.players().local().isIdle();
-
         return playerInMiningArea && inventoryHasSpace && isIdle;
     }
 
     @Override
     public int execute() {
-        GameObjectEntity ironRock = ctx.gameObjects()
-                .within(5)
-                .withId(IRON_ORE_GAME_OBJECT)
-                .random();
+        // If target rock is not null and target rock is now depleted pick a new rock
+        if(plugin.getTargetRock() != null) {
+            GameObjectEntity targetRock = ctx.gameObjects().filter(g -> g.raw().getWorldLocation().getX() == plugin.getTargetRock().getWorldLocation().getX() &&
+                    g.raw().getWorldLocation().getY() == plugin.getTargetRock().getWorldLocation().getY()).first();
+
+            if(IRON_ORE_DEPLETED_GAME_OBJECTS.contains(targetRock.getId())) {
+                GameObjectEntity ironRock = findRock();
+                if(ironRock == null) {
+                    return 650;
+                }
+                plugin.setTargetRock(ironRock.raw());
+                ironRock.interact("Mine");
+                sleepService.sleepUntilIdle();
+                return 250;
+            }
+
+            // If player is mining and target rock is not depleted
+            if (isPlayerMining(ctx.players().local().raw()) || ctx.players().local().isMoving()) {
+                sleepService.sleepUntilIdle();
+            }
+        }
+
+        GameObjectEntity ironRock = findRock();
+        if(ironRock == null) {
+            return 650;
+        }
 
         plugin.setTargetRock(ironRock.raw());
-
         ironRock.interact("Mine");
-        if(isPlayerMining(ctx.players().local().raw())) {
-            sleepService.sleepUntil(() -> ctx.players().local().isIdle(), 7000);
-        }
-        return 6400;
+
+        // Wait for the player to start mining (or moving to the rock).
+        // If the player is still idle after a timeout, something went wrong, and we should try again.
+        sleepService.sleepUntilIdle();
+        return 250;
     }
 
-    public boolean isPlayerMining(Player player) {
+    private GameObjectEntity findRock() {
+        GameObjectEntity ironRock = ctx.gameObjects()
+                .within(5)
+                .filter(g -> IRON_ORE_GAME_OBJECTS.contains(g.getId()) && !IRON_ORE_DEPLETED_GAME_OBJECTS.contains(g.getId()))
+                .random();
+
+        if (ironRock == null || ironRock.isNull()) {
+            log.info("No iron rock could be located, sleeping...");
+            return null;
+        }
+        return ironRock;
+    }
+
+    private boolean isPlayerMining(Player player) {
         return player.getAnimation() == net.runelite.api.AnimationID.MINING_BRONZE_PICKAXE ||
                 player.getAnimation() == net.runelite.api.AnimationID.MINING_IRON_PICKAXE ||
                 player.getAnimation() == net.runelite.api.AnimationID.MINING_STEEL_PICKAXE ||
@@ -62,4 +99,3 @@ public class MiningTask extends AbstractTask {
         return "Mining Ore";
     }
 }
-

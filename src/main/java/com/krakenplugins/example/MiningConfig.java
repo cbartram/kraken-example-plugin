@@ -1,10 +1,7 @@
 
 package com.krakenplugins.example;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.*;
 
 @ConfigGroup("autominer")
 public interface MiningConfig extends Config {
@@ -25,5 +22,29 @@ public interface MiningConfig extends Config {
 	)
 	default boolean highlightTargetRock() {
 		return false;
+	}
+
+	@Range(min = 1, max = 99)
+	@ConfigItem(
+			keyName = "runEnergyThreshold",
+			name = "Run Energy Min",
+			description = "Toggles your run on at a random number between the min and max threshold set here.",
+			position = 2,
+			section = general
+	)
+	default int runEnergyThresholdMin() {
+		return 70;
+	}
+
+	@Range(min = 1, max = 99)
+	@ConfigItem(
+			keyName = "runEnergyThresholdMax",
+			name = "Run Energy Max",
+			description = "Toggles your run on at a random number between the min and max threshold set here.",
+			position = 3,
+			section = general
+	)
+	default int runEnergyThresholdMax() {
+		return 90;
 	}
 }

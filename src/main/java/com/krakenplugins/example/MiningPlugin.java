@@ -17,7 +17,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
+import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.client.callback.ClientThread;
@@ -42,8 +44,10 @@ import java.util.concurrent.TimeUnit;
 public class MiningPlugin extends Plugin {
 
     public static final WorldPoint BANK_LOCATION = new WorldPoint(3253, 3421, 0);
+    public static final WorldPoint BANK_INTERMEDIATE_LOCATION = new WorldPoint(3283, 3422, 0);
     public static final WorldPoint MINE_LOCATION = new WorldPoint(3287, 3367, 0);
-    public static final int IRON_ORE_GAME_OBJECT = 11365;
+    public static final List<Integer> IRON_ORE_GAME_OBJECTS = List.of(11365, 11364);
+    public static final List<Integer> IRON_ORE_DEPLETED_GAME_OBJECTS= List.of(11391, 11390);
     public static final int BANK_BOOTH_GAME_OBJECT = 10583;
 
     @Inject
@@ -103,6 +107,9 @@ public class MiningPlugin extends Plugin {
     private GameObject targetRock;
 
     @Getter
+    private int oreMined;
+
+    @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     @Provides
@@ -152,7 +159,15 @@ public class MiningPlugin extends Plugin {
 
     @Subscribe
     private void onGameTick(GameTick e) {
+        log.info("Player idle: {} on tick: {}", ctx.players().local().isIdle(), ctx.getClient().getTickCount());
         script.onGameTick(e);
+    }
+
+    @Subscribe
+    private void onFakeXpDrop(FakeXpDrop event) {
+        if(event.getSkill() == Skill.MINING) {
+            oreMined += 1;
+        }
     }
 
     @Subscribe
@@ -176,9 +191,5 @@ public class MiningPlugin extends Plugin {
                 TimeUnit.MILLISECONDS.toHours(millis),
                 TimeUnit.MILLISECONDS.toMinutes(millis) % 60,
                 TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
-    }
-
-    public int getOreMined() {
-        return 0; // Placeholder: Implement tracking logic
     }
 }

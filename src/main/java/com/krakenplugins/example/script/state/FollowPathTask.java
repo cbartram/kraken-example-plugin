@@ -3,17 +3,24 @@ package com.krakenplugins.example.script.state;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.service.movement.MovementService;
+import com.kraken.api.service.util.RandomService;
+import com.krakenplugins.example.MiningConfig;
 import com.krakenplugins.example.MiningPlugin;
 import com.krakenplugins.example.script.AbstractTask;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.List;
 
+@Slf4j
 @Singleton
 public class FollowPathTask extends AbstractTask {
 
     @Inject
     private MiningPlugin plugin;
+
+    @Inject
+    private MiningConfig config;
 
     @Inject
     private MovementService movementService;
@@ -28,6 +35,12 @@ public class FollowPathTask extends AbstractTask {
 
     @Override
     public int execute() {
+        int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+        if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
+            log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+            ctx.players().local().toggleRun();
+        }
+
         WorldPoint playerLocation = ctx.players().local().raw().getWorldLocation();
 
         // Stuck detection logic
