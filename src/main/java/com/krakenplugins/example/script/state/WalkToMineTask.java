@@ -36,7 +36,7 @@ public class WalkToMineTask extends AbstractTask {
 
     @Override
     public int execute() {
-        List<WorldPoint> path = pathfinder.findPath(ctx.players().local().raw().getWorldLocation(), MINE_LOCATION);
+        List<WorldPoint> path = pathfinder.findSparsePath(ctx.players().local().raw().getWorldLocation(), MINE_LOCATION);
         plugin.getCurrentPath().addAll(path);
         return 300;
     }

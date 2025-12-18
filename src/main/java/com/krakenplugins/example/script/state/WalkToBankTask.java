@@ -33,7 +33,7 @@ public class WalkToBankTask extends AbstractTask {
 
     @Override
     public int execute() {
-        List<WorldPoint> path = pathfinder.findPath(ctx.players().local().raw().getWorldLocation(), BANK_LOCATION);
+        List<WorldPoint> path = pathfinder.findSparsePath(ctx.players().local().raw().getWorldLocation(), BANK_LOCATION);
 
         // TODO Can't compute path for some reason?, I suspect because the target is out of the scene may need to look at
         // the pathfinder more for this.

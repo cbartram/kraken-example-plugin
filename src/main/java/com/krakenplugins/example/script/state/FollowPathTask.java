@@ -7,6 +7,8 @@ import com.krakenplugins.example.MiningPlugin;
 import com.krakenplugins.example.script.AbstractTask;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.List;
+
 @Singleton
 public class FollowPathTask extends AbstractTask {
 
@@ -26,18 +28,10 @@ public class FollowPathTask extends AbstractTask {
 
     @Override
     public int execute() {
-        WorldPoint nextPoint = plugin.getCurrentPath().get(0);
+        WorldPoint playerLocation = ctx.players().local().raw().getWorldLocation();
 
-        // TODO Needs to take larger "leaps" this waits 8 ticks before it even clicks a point,
-        // instead click a super far away point on the path so char is moving
-        if (ctx.players().local().raw().getWorldLocation().distanceTo(nextPoint) < 8) {
-            plugin.getCurrentPath().remove(0);
-            stuckCounter = 0;
-            lastPosition = null;
-            return 0;
-        }
-
-        if (lastPosition != null && lastPosition.distanceTo(ctx.players().local().raw().getWorldLocation()) == 0) {
+        // Stuck detection logic
+        if (lastPosition != null && lastPosition.distanceTo(playerLocation) == 0) {
             stuckCounter++;
         } else {
             stuckCounter = 0;
@@ -50,8 +44,34 @@ public class FollowPathTask extends AbstractTask {
             return 0;
         }
 
-        movementService.moveTo(nextPoint);
-        lastPosition = ctx.players().local().raw().getWorldLocation();
+        // Remove waypoints that we are very close to
+        if (!plugin.getCurrentPath().isEmpty() && playerLocation.distanceTo(plugin.getCurrentPath().get(0)) < 4) {
+            plugin.getCurrentPath().remove(0);
+            stuckCounter = 0;
+            lastPosition = null;
+            return 0; // Re-evaluate on next tick
+        }
+
+        if (plugin.getCurrentPath().isEmpty()) {
+            return 0; // Path is complete
+        }
+
+        // Find the furthest visible point on the path to walk to. This allows for more natural movement.
+        List<WorldPoint> path = plugin.getCurrentPath();
+        WorldPoint target = path.get(0); // Default to the next point in the path
+
+        // Find the furthest point on the path that is still within a clickable distance
+        for (int i = path.size() - 1; i >= 0; i--) {
+            WorldPoint currentPoint = path.get(i);
+            // A distance of 14 is a good heuristic for a tile that is reachable on screen.
+            if (playerLocation.distanceTo(currentPoint) < 14) {
+                target = currentPoint;
+                break;
+            }
+        }
+
+        movementService.moveTo(target);
+        lastPosition = playerLocation;
 
         return 300;
     }
