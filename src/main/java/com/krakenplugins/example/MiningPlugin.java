@@ -3,6 +3,7 @@ package com.krakenplugins.example;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.kraken.api.Context;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.util.SleepService;
@@ -10,10 +11,7 @@ import com.krakenplugins.example.overlay.MovementOverlay;
 import com.krakenplugins.example.overlay.SceneOverlay;
 import com.krakenplugins.example.overlay.ScriptOverlay;
 import com.krakenplugins.example.script.Task;
-import com.krakenplugins.example.script.state.BankingTask;
-import com.krakenplugins.example.script.state.MiningTask;
-import com.krakenplugins.example.script.state.OpenBankTask;
-import com.krakenplugins.example.script.state.WalkToMineTask;
+import com.krakenplugins.example.script.state.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -46,9 +44,13 @@ public class MiningPlugin extends Plugin {
     public static final WorldPoint BANK_LOCATION = new WorldPoint(3253, 3421, 0);
     public static final WorldPoint MINE_LOCATION = new WorldPoint(3287, 3367, 0);
     public static final int IRON_ORE_GAME_OBJECT = 11365;
+    public static final int BANK_BOOTH_GAME_OBJECT = 10583;
 
     @Inject
     private Script script;
+
+    @Inject
+    private Context ctx;
 
     @Getter
     @Inject
@@ -84,6 +86,12 @@ public class MiningPlugin extends Plugin {
     @Inject
     private WalkToMineTask walkToMineTask;
 
+    @Inject
+    private WalkToBankTask walkToBankTask;
+
+    @Inject
+    private FollowPathTask followPathTask;
+
     private final List<Task> tasks = new ArrayList<>();
     private long startTime;
 
@@ -104,6 +112,7 @@ public class MiningPlugin extends Plugin {
 
     @Override
     protected void startUp() {
+        ctx.initializePackets();
         script.setLoopTask(() -> {
             for (Task task : tasks) {
                 if (task.validate()) {
@@ -124,7 +133,14 @@ public class MiningPlugin extends Plugin {
 
         startTime = System.currentTimeMillis();
         tasks.clear();
-        tasks.addAll(List.of(miningTask, bankingTask, openBankTask, walkToMineTask));
+        tasks.addAll(List.of(
+                followPathTask,
+                miningTask,
+                bankingTask,
+                openBankTask,
+                walkToMineTask,
+                walkToBankTask
+        ));
     }
 
     @Override

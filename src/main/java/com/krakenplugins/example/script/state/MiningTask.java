@@ -39,8 +39,10 @@ public class MiningTask extends AbstractTask {
         plugin.setTargetRock(ironRock.raw());
 
         ironRock.interact("Mine");
-        sleepService.sleepUntil(() -> isPlayerMining(ctx.players().local().raw()), 7000);
-        return 1000;
+        if(isPlayerMining(ctx.players().local().raw())) {
+            sleepService.sleepUntil(() -> ctx.players().local().isIdle(), 7000);
+        }
+        return 3200;
     }
 
     public boolean isPlayerMining(Player player) {

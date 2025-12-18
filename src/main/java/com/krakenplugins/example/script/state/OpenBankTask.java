@@ -6,10 +6,10 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.script.AbstractTask;
 
+import static com.krakenplugins.example.MiningPlugin.BANK_BOOTH_GAME_OBJECT;
+
 @Singleton
 public class OpenBankTask extends AbstractTask {
-
-    private static final int BANK_BOOTH_ID = 1234;
 
     @Inject
     private SleepService sleepService;
@@ -19,12 +19,12 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.gameObjects().within(7).withId(BANK_BOOTH_ID).stream().findAny().isPresent() && ctx.inventory().isFull();
+        return ctx.gameObjects().within(7).withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() && ctx.inventory().isFull();
     }
 
     @Override
     public int execute() {
-        ctx.gameObjects().withId(BANK_BOOTH_ID).nearest().interact("Bank");
+        ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest().interact("Bank");
         sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         return 500;
     }
