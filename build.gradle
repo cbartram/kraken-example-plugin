@@ -3,18 +3,18 @@ plugins {
 }
 
 def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '2.0.17'
+def krakenApiVersion = '2.0.18'
 
 group = 'com.krakenplugins'
 version = '1.0.0'
 
 repositories {
-    mavenLocal()
     maven {
         url = 'https://repo.runelite.net'
     }
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    mavenLocal()
 }
 
 dependencies {

@@ -4,13 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.core.script.Script;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.overlay.SceneOverlay;
 import com.krakenplugins.example.overlay.ScriptOverlay;
-import com.krakenplugins.example.script.Task;
-import com.krakenplugins.example.script.state.*;
+import com.krakenplugins.example.script.MiningScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +48,7 @@ public class MiningPlugin extends Plugin {
     public static final int BANK_BOOTH_GAME_OBJECT = 10583;
 
     @Inject
-    private Script script;
+    private MiningScript miningScript;
 
     @Inject
     private Context ctx;
@@ -71,32 +69,7 @@ public class MiningPlugin extends Plugin {
     @Inject
     private SceneOverlay sceneOverlay;
 
-    @Inject
-    private SleepService sleepService;
-
-    @Inject
-    private MiningTask miningTask;
-
-    @Inject
-    private BankingTask bankingTask;
-
-    @Inject
-    private OpenBankTask openBankTask;
-
-    @Inject
-    private WalkToMineTask walkToMineTask;
-
-    @Inject
-    private WalkToBankTask walkToBankTask;
-
-    @Inject
-    private FollowPathTask followPathTask;
-
-    private final List<Task> tasks = new ArrayList<>();
     private final long startTime = System.currentTimeMillis();
-
-    @Getter
-    private String status = "Initializing";
 
     @Getter
     @Setter
@@ -116,44 +89,19 @@ public class MiningPlugin extends Plugin {
     @Override
     protected void startUp() {
         ctx.initializePackets();
-        script.setLoopTask(() -> {
-            for (Task task : tasks) {
-                if (task.validate()) {
-                    status = task.status();
-                    int delay = task.execute();
-                    if (delay > 0) {
-                        sleepService.sleep(delay);
-                    }
-                    break; // Execute only the highest priority valid task
-                }
-            }
-        });
+        miningScript.start();
 
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);
-
-        tasks.clear();
-        tasks.addAll(List.of(
-                followPathTask,
-                miningTask,
-                bankingTask,
-                openBankTask,
-                walkToMineTask,
-                walkToBankTask
-        ));
     }
 
     @Override
     protected void shutDown() {
+        miningScript.stop();
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
         overlayManager.remove(sceneOverlay);
-    }
-
-    @Subscribe
-    private void onGameTick(GameTick e) {
-        script.onGameTick(e);
     }
 
     @Subscribe
@@ -184,5 +132,9 @@ public class MiningPlugin extends Plugin {
                 TimeUnit.MILLISECONDS.toHours(millis),
                 TimeUnit.MILLISECONDS.toMinutes(millis) % 60,
                 TimeUnit.MILLISECONDS.toSeconds(millis) % 60);
+    }
+
+    public String getStatus() {
+        return miningScript.getStatus();
     }
 }
