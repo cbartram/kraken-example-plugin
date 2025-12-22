@@ -3,7 +3,7 @@ plugins {
 }
 
 def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '2.0.18'
+def krakenApiVersion = '2.0.20'
 
 group = 'com.krakenplugins'
 version = '1.0.0'
@@ -13,6 +13,15 @@ repositories {
         url = 'https://repo.runelite.net'
     }
     mavenCentral()
+    // You must declare this maven repository to be able to search and pull Kraken API packages
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
     maven { url 'https://jitpack.io' }
     mavenLocal()
 }

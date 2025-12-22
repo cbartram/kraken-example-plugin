@@ -3,7 +3,7 @@ package com.krakenplugins.example.script.state;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.service.bank.BankService;
-import com.kraken.api.service.movement.Pathfinder;
+import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.MiningPlugin;
 import com.krakenplugins.example.script.AbstractTask;
 import net.runelite.api.coords.WorldPoint;
@@ -19,7 +19,7 @@ public class WalkToMineTask extends AbstractTask {
     private BankService bankService;
 
     @Inject
-    private Pathfinder pathfinder;
+    private LocalPathfinder pathfinder;
 
     @Inject
     private MiningPlugin plugin;

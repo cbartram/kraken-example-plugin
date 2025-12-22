@@ -2,7 +2,7 @@ package com.krakenplugins.example.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.kraken.api.service.movement.Pathfinder;
+import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.MiningPlugin;
 import com.krakenplugins.example.script.AbstractTask;
 import lombok.Getter;
@@ -21,7 +21,7 @@ import static com.krakenplugins.example.MiningPlugin.BANK_LOCATION;
 public class WalkToBankTask extends AbstractTask {
 
     @Inject
-    private Pathfinder pathfinder;
+    private LocalPathfinder pathfinder;
 
     @Inject
     private MiningPlugin plugin;
@@ -35,8 +35,7 @@ public class WalkToBankTask extends AbstractTask {
         boolean playerNotInBank = !ctx.players().local().isInArea(BANK_LOCATION, 3);
         return ctx.inventory().isFull()
                 && playerNotInBank
-                && ctx.players().local().isIdle()
-                && plugin.getCurrentPath().isEmpty();
+                && ctx.players().local().isIdle();
     }
 
     @Override
