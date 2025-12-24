@@ -44,6 +44,7 @@ public class MiningTask extends AbstractTask {
                     return 650;
                 }
                 plugin.setTargetRock(ironRock.raw());
+                ctx.getMouse().move(ironRock.raw());
                 ironRock.interact("Mine");
                 sleepService.sleepUntilIdle();
                 return 250;

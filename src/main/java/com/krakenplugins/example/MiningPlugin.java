@@ -4,8 +4,10 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.input.mouse.VirtualMouse;
+import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
+import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
-import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.overlay.SceneOverlay;
 import com.krakenplugins.example.overlay.ScriptOverlay;
 import com.krakenplugins.example.script.MiningScript;
@@ -18,10 +20,10 @@ import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -69,6 +71,9 @@ public class MiningPlugin extends Plugin {
     @Inject
     private SceneOverlay sceneOverlay;
 
+    @Inject
+    private MiningConfig config;
+
     private final long startTime = System.currentTimeMillis();
 
     @Getter
@@ -102,6 +107,26 @@ public class MiningPlugin extends Plugin {
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
         overlayManager.remove(sceneOverlay);
+    }
+
+    @Subscribe
+    private void onConfigChanged(ConfigChanged event) {
+        if(event.getGroup().equals("autominer")) {
+            String key = event.getKey();
+
+            if(key.equals("mouseMovementStrategy")) {
+                VirtualMouse.setMouseMovementStrategy(config.mouseMovementStrategy());
+                if(config.mouseMovementStrategy() == MouseMovementStrategy.REPLAY) {
+                    VirtualMouse.loadLibrary(config.replayLibrary());
+                }
+
+                if(config.mouseMovementStrategy() == MouseMovementStrategy.LINEAR) {
+                    LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
+                    linear.setSteps(config.linearSteps());
+                }
+            }
+
+        }
     }
 
     @Subscribe

@@ -2,6 +2,7 @@ package com.krakenplugins.example.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.query.container.bank.BankInventoryEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.script.AbstractTask;
@@ -31,8 +32,13 @@ public class BankingTask extends AbstractTask {
 
     @Override
     public int execute() {
-        ctx.bankInventory().withName("Iron ore").first().depositAll();
+        BankInventoryEntity iron = ctx.bankInventory().withName("Iron ore").first();
+        ctx.getMouse().move(iron.raw());
+        iron.depositAll();
         sleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
+
+        // TODO Get the close widget and move mouse to it
+
         bankService.close();
         walkToBankTask.setArrivedAtIntermediatePoint(false);
         return 1000;

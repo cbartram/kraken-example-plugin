@@ -83,6 +83,7 @@ public class FollowPathTask extends AbstractTask {
             }
         }
 
+        ctx.getMouse().move(target);
         movementService.moveTo(target);
         lastPosition = playerLocation;
 

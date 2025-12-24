@@ -2,6 +2,7 @@ package com.krakenplugins.example.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.script.AbstractTask;
@@ -24,7 +25,9 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public int execute() {
-        ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest().interact("Bank");
+        GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
+        ctx.getMouse().move(booth.raw());
+        booth.interact("Bank");
         sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         return 500;
     }
