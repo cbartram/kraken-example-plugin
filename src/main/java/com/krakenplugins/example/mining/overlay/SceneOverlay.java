@@ -1,7 +1,7 @@
-package com.krakenplugins.example.overlay;
+package com.krakenplugins.example.mining.overlay;
 
-import com.krakenplugins.example.MiningConfig;
-import com.krakenplugins.example.MiningPlugin;
+import com.krakenplugins.example.mining.MiningConfig;
+import com.krakenplugins.example.mining.MiningPlugin;
 import net.runelite.api.Client;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import net.runelite.client.ui.overlay.Overlay;

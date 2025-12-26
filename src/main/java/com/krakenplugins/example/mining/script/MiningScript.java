@@ -1,8 +1,9 @@
-package com.krakenplugins.example.script;
+package com.krakenplugins.example.mining.script;
 
 import com.google.inject.Inject;
 import com.kraken.api.core.script.Script;
-import com.krakenplugins.example.script.state.*;
+import com.kraken.api.core.script.Task;
+import com.krakenplugins.example.mining.script.state.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

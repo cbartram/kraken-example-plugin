@@ -1,4 +1,4 @@
-package com.krakenplugins.example;
+package com.krakenplugins.example.woodcutting;
 
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -8,17 +8,15 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
-import com.krakenplugins.example.overlay.SceneOverlay;
-import com.krakenplugins.example.overlay.ScriptOverlay;
-import com.krakenplugins.example.script.MiningScript;
+import com.krakenplugins.example.mining.overlay.ScriptOverlay;
+import com.krakenplugins.example.woodcutting.overlay.SceneOverlay;
+import com.krakenplugins.example.woodcutting.script.WoodcuttingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
-import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -35,22 +33,15 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Singleton
 @PluginDescriptor(
-        name = "Mining Example Plugin",
+        name = "Woodcutting Example Plugin",
         enabledByDefault = false,
-        description = "Demonstrates an example of building a Mining automation plugin using the Kraken API.",
-        tags = {"example", "automation", "kraken"}
+        description = "Demonstrates an example of building a Woodcutting automation plugin using the Kraken API.",
+        tags = {"example", "automation", "kraken", "woodcutting"}
 )
-public class MiningPlugin extends Plugin {
-
-    public static final WorldPoint BANK_LOCATION = new WorldPoint(3253, 3421, 0);
-    public static final WorldPoint BANK_INTERMEDIATE_LOCATION = new WorldPoint(3283, 3422, 0);
-    public static final WorldPoint MINE_LOCATION = new WorldPoint(3287, 3367, 0);
-    public static final List<Integer> IRON_ORE_GAME_OBJECTS = List.of(11365, 11364);
-    public static final List<Integer> IRON_ORE_DEPLETED_GAME_OBJECTS= List.of(11391, 11390);
-    public static final int BANK_BOOTH_GAME_OBJECT = 10583;
+public class WoodcuttingPlugin extends Plugin {
 
     @Inject
-    private MiningScript miningScript;
+    private WoodcuttingScript woodcuttingScript;
 
     @Inject
     private Context ctx;
@@ -72,30 +63,26 @@ public class MiningPlugin extends Plugin {
     private SceneOverlay sceneOverlay;
 
     @Inject
-    private MiningConfig config;
+    private WoodcuttingConfig config;
 
     private final long startTime = System.currentTimeMillis();
 
     @Getter
     @Setter
-    private GameObject targetRock;
-
-    @Getter
-    private int oreMined;
+    private GameObject targetTree;
 
     @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     @Provides
-    MiningConfig provideConfig(final ConfigManager configManager) {
-        return configManager.getConfig(MiningConfig.class);
+    WoodcuttingConfig provideConfig(final ConfigManager configManager) {
+        return configManager.getConfig(WoodcuttingConfig.class);
     }
 
     @Override
     protected void startUp() {
         ctx.initializePackets();
-        miningScript.start();
-
+        woodcuttingScript.start();
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);
@@ -103,7 +90,7 @@ public class MiningPlugin extends Plugin {
 
     @Override
     protected void shutDown() {
-        miningScript.stop();
+        woodcuttingScript.stop();
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
         overlayManager.remove(sceneOverlay);
@@ -111,7 +98,7 @@ public class MiningPlugin extends Plugin {
 
     @Subscribe
     private void onConfigChanged(ConfigChanged event) {
-        if(event.getGroup().equals("autominer")) {
+        if(event.getGroup().equals("autochopper")) {
             String key = event.getKey();
 
             if(key.equals("mouseMovementStrategy")) {
@@ -126,13 +113,6 @@ public class MiningPlugin extends Plugin {
                 }
             }
 
-        }
-    }
-
-    @Subscribe
-    private void onFakeXpDrop(FakeXpDrop event) {
-        if(event.getSkill() == Skill.MINING) {
-            oreMined += 1;
         }
     }
 
@@ -160,6 +140,7 @@ public class MiningPlugin extends Plugin {
     }
 
     public String getStatus() {
-        return miningScript.getStatus();
+        return woodcuttingScript.getStatus();
     }
 }
+

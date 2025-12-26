@@ -1,13 +1,13 @@
-package com.krakenplugins.example.script.state;
+package com.krakenplugins.example.mining.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
-import com.krakenplugins.example.script.AbstractTask;
 
-import static com.krakenplugins.example.MiningPlugin.BANK_BOOTH_GAME_OBJECT;
+import static com.krakenplugins.example.mining.MiningPlugin.BANK_BOOTH_GAME_OBJECT;
 
 @Singleton
 public class OpenBankTask extends AbstractTask {

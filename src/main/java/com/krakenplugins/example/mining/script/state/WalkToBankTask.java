@@ -1,10 +1,10 @@
-package com.krakenplugins.example.script.state;
+package com.krakenplugins.example.mining.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
-import com.krakenplugins.example.MiningPlugin;
-import com.krakenplugins.example.script.AbstractTask;
+import com.krakenplugins.example.mining.MiningPlugin;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +13,8 @@ import net.runelite.api.coords.WorldPoint;
 
 import java.util.List;
 
-import static com.krakenplugins.example.MiningPlugin.BANK_INTERMEDIATE_LOCATION;
-import static com.krakenplugins.example.MiningPlugin.BANK_LOCATION;
+import static com.krakenplugins.example.mining.MiningPlugin.BANK_INTERMEDIATE_LOCATION;
+import static com.krakenplugins.example.mining.MiningPlugin.BANK_LOCATION;
 
 @Slf4j
 @Singleton

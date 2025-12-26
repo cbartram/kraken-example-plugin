@@ -1,12 +1,12 @@
-package com.krakenplugins.example.script.state;
+package com.krakenplugins.example.mining.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.util.RandomService;
-import com.krakenplugins.example.MiningConfig;
-import com.krakenplugins.example.MiningPlugin;
-import com.krakenplugins.example.script.AbstractTask;
+import com.krakenplugins.example.mining.MiningConfig;
+import com.krakenplugins.example.mining.MiningPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 

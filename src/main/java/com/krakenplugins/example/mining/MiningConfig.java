@@ -1,12 +1,11 @@
 
-package com.krakenplugins.example;
+package com.krakenplugins.example.mining;
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import net.runelite.client.config.*;
 
 @ConfigGroup("autominer")
 public interface MiningConfig extends Config {
-
 
 	@ConfigSection(
 			name = "Mouse",

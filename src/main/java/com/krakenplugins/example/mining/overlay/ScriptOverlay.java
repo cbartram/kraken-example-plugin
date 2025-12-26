@@ -1,8 +1,8 @@
-package com.krakenplugins.example.overlay;
+package com.krakenplugins.example.mining.overlay;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.krakenplugins.example.MiningPlugin;
+import com.krakenplugins.example.mining.MiningPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
