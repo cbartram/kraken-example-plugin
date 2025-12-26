@@ -49,34 +49,21 @@ public interface WoodcuttingConfig extends Config {
 	}
 
 	@ConfigSection(
-			name = "Run Energy",
-			description = "Run energy settings",
+			name = "Tree",
+			description = "Tree settings",
 			position = 2
 	)
-	String run = "Run";
+	String tree = "tree";
 
-	@Range(min = 1, max = 99)
 	@ConfigItem(
-			keyName = "runEnergyThreshold",
-			name = "Run Energy Min",
-			description = "Toggles your run on at a random number between the min and max threshold set here.",
-			position = 3,
-			section = run
+			keyName = "treeName",
+			name = "Tree Name",
+			description = "Configures the script to search for tress of this type to chop.",
+			position = 1,
+			section = tree
 	)
-	default int runEnergyThresholdMin() {
-		return 70;
-	}
-
-	@Range(min = 1, max = 99)
-	@ConfigItem(
-			keyName = "runEnergyThresholdMax",
-			name = "Run Energy Max",
-			description = "Toggles your run on at a random number between the min and max threshold set here.",
-			position = 4,
-			section = run
-	)
-	default int runEnergyThresholdMax() {
-		return 90;
+	default String treeName() {
+		return "Willow Tree";
 	}
 
 	@ConfigSection(

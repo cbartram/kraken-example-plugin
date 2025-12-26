@@ -40,6 +40,10 @@ import java.util.concurrent.TimeUnit;
 )
 public class WoodcuttingPlugin extends Plugin {
 
+    public static final WorldPoint BANK_LOCATION = new WorldPoint(3092, 3243, 0);
+    public static final WorldPoint TREE_LOCATION = new WorldPoint(3087, 3233, 0);
+    public static final int BANK_BOOTH_GAME_OBJECT = 10355;
+
     @Inject
     private WoodcuttingScript woodcuttingScript;
 
