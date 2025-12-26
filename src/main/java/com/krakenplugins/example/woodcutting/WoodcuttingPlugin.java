@@ -8,8 +8,8 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
-import com.krakenplugins.example.mining.overlay.ScriptOverlay;
 import com.krakenplugins.example.woodcutting.overlay.SceneOverlay;
+import com.krakenplugins.example.woodcutting.overlay.ScriptOverlay;
 import com.krakenplugins.example.woodcutting.script.WoodcuttingScript;
 import lombok.Getter;
 import lombok.Setter;
@@ -70,6 +70,9 @@ public class WoodcuttingPlugin extends Plugin {
     @Getter
     @Setter
     private GameObject targetTree;
+
+    @Getter
+    private int logsChopped;
 
     @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
