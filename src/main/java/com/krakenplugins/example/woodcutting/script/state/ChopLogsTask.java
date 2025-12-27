@@ -23,12 +23,14 @@ public class ChopLogsTask extends AbstractTask {
     public boolean validate() {
         return ctx.players().local().isIdle()
                 && !ctx.inventory().isFull()
-                && ctx.gameObjects().within(8).withName(config.treeName()).random() != null;
+                && ctx.gameObjects().within(config.treeRadius()).withName(config.treeName()).random() != null;
     }
 
     @Override
     public int execute() {
-        GameObjectEntity tree = ctx.gameObjects().within(8).withName(config.treeName()).random();
+        GameObjectEntity tree = ctx.gameObjects()
+                .within(config.treeRadius())
+                .withName(config.treeName()).random();
 
         if(tree != null) {
             plugin.setTargetTree(tree.raw());
@@ -37,7 +39,7 @@ public class ChopLogsTask extends AbstractTask {
             sleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(5000, 6000));
         }
 
-        return 0;
+        return 1200;
     }
 
     @Override

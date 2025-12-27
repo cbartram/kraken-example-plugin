@@ -50,7 +50,7 @@ public interface WoodcuttingConfig extends Config {
 
 	@ConfigSection(
 			name = "Tree",
-			description = "Tree settings",
+			description = "Tree chopping settings",
 			position = 2
 	)
 	String tree = "tree";
@@ -64,6 +64,18 @@ public interface WoodcuttingConfig extends Config {
 	)
 	default String treeName() {
 		return "Willow Tree";
+	}
+
+	@Range(min=1, max=100)
+	@ConfigItem(
+			keyName = "treeRadius",
+			name = "Tree Radius",
+			description = "Configures how far the script should look for choppable trees from the players location.",
+			position = 2,
+			section = tree
+	)
+	default int treeRadius() {
+		return 8;
 	}
 
 	@ConfigSection(
@@ -85,10 +97,21 @@ public interface WoodcuttingConfig extends Config {
 	}
 
 	@ConfigItem(
+		keyName = "showTreeRaadius",
+		name = "Show Tree Radius",
+		description = "Shows the radius of choppable trees from the players location.",
+		position = 2,
+		section = overlay
+	)
+	default boolean showTreeRadius() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "renderPath",
 			name = "Render Path",
 			description = "Show the computed path to your destination on the screen.",
-			position = 2,
+			position = 3,
 			section = overlay
 	)
 	default boolean renderPath() {

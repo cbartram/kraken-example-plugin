@@ -18,19 +18,22 @@ public class BankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.players().local().isIdle() && ctx.gameObjects().within(20).withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() && ctx.inventory().isFull();
+        return ctx.players().local().isIdle() &&
+                ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() &&
+                ctx.inventory().isFull();
     }
 
     @Override
     public int execute() {
-        GameObjectEntity bankBooth = ctx.gameObjects().withName("Bank booth").nearest();
+        GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
 
         if(bankBooth != null) {
             ctx.getMouse().move(bankBooth.raw());
             bankBooth.interact("Bank");
             sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         }
-        return 0;
+
+        return 1200;
     }
 
     @Override
