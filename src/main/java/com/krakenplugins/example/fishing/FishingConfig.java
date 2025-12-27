@@ -2,6 +2,7 @@ package com.krakenplugins.example.fishing;
 
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
+import com.kraken.api.query.container.inventory.InventoryOrder;
 import com.krakenplugins.example.fishing.script.FishingLocation;
 import net.runelite.client.config.*;
 
@@ -76,6 +77,17 @@ public interface FishingConfig extends Config {
 	)
 	default FishingLocation fishingLocation() {
 		return FishingLocation.DRAYNOR_VILLAGE;
+	}
+
+	@ConfigItem(
+			keyName = "dropPattern",
+			name = "Drop Pattern",
+			description = "Determines which pattern to use to drop the fish.",
+			position = 2,
+			section = fishing
+	)
+	default InventoryOrder dropPattern() {
+		return InventoryOrder.TOP_DOWN_LEFT_RIGHT;
 	}
 
 	@ConfigSection(

@@ -8,13 +8,13 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.query.npc.NpcEntity;
 import com.krakenplugins.example.fishing.overlay.SceneOverlay;
 import com.krakenplugins.example.fishing.overlay.ScriptOverlay;
 import com.krakenplugins.example.fishing.script.FishingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
@@ -69,7 +69,7 @@ public class FishingPlugin extends Plugin {
 
     @Getter
     @Setter
-    private GameObject targetSpot;
+    private NpcEntity targetSpot;
 
     @Getter
     private int fishCaught;
@@ -85,6 +85,7 @@ public class FishingPlugin extends Plugin {
     @Override
     protected void startUp() {
         ctx.initializePackets();
+        fishingScript.setTasksForLocation(config.fishingLocation());
         fishingScript.start();
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);

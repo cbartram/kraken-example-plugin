@@ -6,8 +6,11 @@ import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.fishing.FishingConfig;
+import com.krakenplugins.example.fishing.FishingPlugin;
 import com.krakenplugins.example.fishing.script.FishingLocation;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class FishDraynor extends AbstractTask {
 
     @Inject
@@ -16,36 +19,30 @@ public class FishDraynor extends AbstractTask {
     @Inject
     private SleepService sleepService;
 
+    @Inject
+    private FishingPlugin plugin;
+
     @Override
     public boolean validate() {
-        if (ctx.inventory().isFull()) return false;
-
         if (!ctx.inventory().hasItem(303)) return false;
-
-        if (!ctx.players().local().isInArea(FishingLocation.DRAYNOR_VILLAGE.getLocation(), 12)) return false;
-
-        // CRITICAL FIX: Better Idle Check
-        // We are NOT valid to fish if we are currently interacting with the fishing spot
-        // or if we are performing the fishing animation (Id: 621 for small net).
-        // Adjust animation ID based on actual OSRS debug data.
-        boolean isFishingAnim = ctx.players().local().raw().getAnimation() != -1; // -1 is usually idle
-        boolean isInteracting = ctx.players().local().raw().getInteracting() != null
-                && ctx.players().local().raw().getInteracting().getName().equalsIgnoreCase("Fishing spot");
-
-        return !isFishingAnim && !isInteracting;
+        return ctx.players().local().isInArea(FishingLocation.DRAYNOR_VILLAGE.getLocation(), 12) &&
+                ctx.players().local().isIdle() &&
+                !ctx.inventory().isFull();
     }
 
     @Override
     public int execute() {
         NpcEntity spot = ctx.npcs().withId(FishingLocation.DRAYNOR_VILLAGE.getSpotId()).nearest();
         if(spot != null) {
+            plugin.setTargetSpot(spot);
             if(config.useMouse()) {
                 ctx.getMouse().move(spot.raw());
             }
             if (spot.interact("Small Net")) {
-                sleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000
-                );
+                sleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000);
             }
+        } else {
+            log.info("No spot found.");
         }
         return RandomService.between(1200, 1800);
     }

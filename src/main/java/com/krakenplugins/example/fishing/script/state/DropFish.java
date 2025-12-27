@@ -6,9 +6,11 @@ import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.fishing.FishingConfig;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Slf4j
 public class DropFish extends AbstractTask {
 
     @Inject
@@ -34,22 +36,25 @@ public class DropFish extends AbstractTask {
             isDropping = false;
         }
 
+        log.info("Is Dropping: {}", isDropping);
         return isDropping;
     }
 
     @Override
     public int execute() {
-        // Ban Safety: Don't use a loop. Drop 1-2 items per script cycle (per tick).
-        // This creates a natural rhythm and allows the script to react to other events.
         List<Integer> fishIds = config.fishingLocation().getFishIds();
         List<InventoryEntity> items = ctx.inventory()
+                .orderBy(config.dropPattern())
                 .filter(item -> fishIds.contains(item.getId()))
                 .list();
 
-        if (items.isEmpty()) return 600;
+        if (items.isEmpty()) {
+            isDropping = false;
+            return 600;
+        }
 
         // Determine drop count for this specific tick (burst vs single)
-        int dropsThisTick = RandomService.between(3, 6);
+        int dropsThisTick = RandomService.between(4, 7);
 
         for (int i = 0; i < Math.min(items.size(), dropsThisTick); i++) {
             InventoryEntity item = items.get(i);
@@ -59,8 +64,7 @@ public class DropFish extends AbstractTask {
             }
 
             item.drop();
-
-            sleepService.sleep(50, 90);
+            sleepService.sleep(32, 75);
         }
 
         // Return delay for next loop.

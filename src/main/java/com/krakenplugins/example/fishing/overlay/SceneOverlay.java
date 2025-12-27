@@ -67,7 +67,7 @@ public class SceneOverlay extends Overlay {
 
     private void renderTargetSpot() {
         if(plugin.getTargetSpot() != null) {
-            modelOutlineRenderer.drawOutline(plugin.getTargetSpot(), 2, Color.GREEN, 2);
+            modelOutlineRenderer.drawOutline(plugin.getTargetSpot().raw(), 2, Color.GREEN, 2);
         }
     }
 
@@ -92,8 +92,8 @@ public class SceneOverlay extends Overlay {
                     Color color;
 
                     if(plugin.getTargetSpot() != null) {
-                        if (spot.raw().getWorldLocation().getX() == plugin.getTargetSpot().getWorldLocation().getX() &&
-                                spot.raw().getWorldLocation().getY() == plugin.getTargetSpot().getWorldLocation().getY()) {
+                        if (spot.raw().getWorldLocation().getX() == plugin.getTargetSpot().raw().getWorldLocation().getX() &&
+                                spot.raw().getWorldLocation().getY() == plugin.getTargetSpot().raw().getWorldLocation().getY()) {
                             color = Color.GREEN;
                         } else {
                             color = Color.CYAN;
