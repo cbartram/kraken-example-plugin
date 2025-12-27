@@ -18,6 +18,8 @@ import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCATION;
+
 @Singleton
 public class SceneOverlay extends Overlay {
     private final Client client;
@@ -51,17 +53,42 @@ public class SceneOverlay extends Overlay {
         }
 
         if(config.highlightTargetTree()) {
-            renderTargetRock();
+            renderTargetTree();
         }
         
         if(config.showTreeRadius()) {
             renderTreeRadius(graphics);
         }
 
+        if(config.debug()) {
+            renderDebug(graphics);
+        }
+
         return null;
     }
 
-    private void renderTargetRock() {
+    private void renderDebug(Graphics2D graphics) {
+        LocalPoint localPoint = LocalPoint.fromWorld(client, BANK_LOCATION);
+
+        if (localPoint != null) {
+            // Check if player is in area using your requested method
+            boolean inArea = ctx.players().local().isInArea(BANK_LOCATION, 3);
+
+            // Set Color based on state
+            Color color = inArea ? Color.GREEN : Color.RED;
+
+            // Render the area
+            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
+            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
+            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, localPoint, (3 * 2) + 1);
+
+            if (areaPoly != null) {
+                OverlayUtil.renderPolygon(graphics, areaPoly, color);
+            }
+        }
+    }
+
+    private void renderTargetTree() {
         if(plugin.getTargetTree() != null) {
             modelOutlineRenderer.drawOutline(plugin.getTargetTree(), 2, Color.GREEN, 2);
         }
@@ -90,18 +117,19 @@ public class SceneOverlay extends Overlay {
                             .toArray());
                 }
 
-                String overlayText = String.format("%s | Dist: %d | %s",
-                        tree.getName(),
-                        distance,
-                        actionString);
-
+                String overlayText = String.format("Dist: %d", distance);
                 net.runelite.api.Point textLocation = tree.raw().getCanvasTextLocation(graphics, overlayText, 0);
 
                 if (textLocation != null) {
                     Color color;
-                    if(tree.raw().getWorldLocation().getX() == plugin.getTargetTree().getWorldLocation().getX() &&
-                            tree.raw().getWorldLocation().getY() == plugin.getTargetTree().getWorldLocation().getY()) {
-                        color = Color.GREEN;
+
+                    if(plugin.getTargetTree() != null) {
+                        if (tree.raw().getWorldLocation().getX() == plugin.getTargetTree().getWorldLocation().getX() &&
+                                tree.raw().getWorldLocation().getY() == plugin.getTargetTree().getWorldLocation().getY()) {
+                            color = Color.GREEN;
+                        } else {
+                            color = Color.CYAN;
+                        }
                     } else {
                         color = Color.CYAN;
                     }

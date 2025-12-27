@@ -15,10 +15,21 @@ public interface WoodcuttingConfig extends Config {
 	String mouse = "mouse";
 
 	@ConfigItem(
+			keyName = "useMouse",
+			name = "Use Mouse Movement",
+			description = "When true the mouse will be moved on the canvas.",
+			position = 1,
+			section = mouse
+	)
+	default boolean useMouse() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "mouseMovementStrategy",
 			name = "Movement Strategy",
 			description = "Determines which strategy is used to move the client's mouse.",
-			position = 1,
+			position = 2,
 			section = mouse
 	)
 	default MouseMovementStrategy mouseMovementStrategy() {
@@ -29,7 +40,7 @@ public interface WoodcuttingConfig extends Config {
 			keyName = "replayLibrary",
 			name = "Replay Library",
 			description = "Determines which library to load when the mouse strategy is set to: REPLAY.",
-			position = 2,
+			position = 3,
 			section = mouse
 	)
 	default String replayLibrary() {
@@ -41,7 +52,7 @@ public interface WoodcuttingConfig extends Config {
 			keyName = "linearSteps",
 			name = "Linear Steps",
 			description = "Determines how many steps (points along the linear path) should be generated when the mouse strategy is set to: LINEAR.",
-			position = 3,
+			position = 4,
 			section = mouse
 	)
 	default int linearSteps() {
@@ -115,6 +126,18 @@ public interface WoodcuttingConfig extends Config {
 			section = overlay
 	)
 	default boolean renderPath() {
+		return false;
+	}
+
+
+	@ConfigItem(
+			keyName = "debug",
+			name = "Debug",
+			description = "Show debug information and overlays.",
+			position = 4,
+			section = overlay
+	)
+	default boolean debug() {
 		return false;
 	}
 

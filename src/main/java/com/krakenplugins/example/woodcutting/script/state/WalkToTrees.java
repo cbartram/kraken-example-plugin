@@ -6,6 +6,7 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.kraken.api.service.util.SleepService;
+import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.List;
@@ -27,6 +28,9 @@ public class WalkToTrees extends AbstractTask  {
     @Inject
     private SleepService sleepService;
 
+    @Inject
+    private WoodcuttingConfig config;
+
     @Override
     public boolean validate() {
         boolean playerInventoryEmpty = ctx.inventory().nameContains("logs").count() == 0;
@@ -43,7 +47,9 @@ public class WalkToTrees extends AbstractTask  {
         }
 
         // It's a short path so just move to the destination tile
-        movementService.moveTo(path.get(path.size() - 1));
+        if(config.useMouse()) {
+            movementService.moveTo(path.get(path.size() - 1));
+        }
         sleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == -1, 15000);
         return 2000;
     }

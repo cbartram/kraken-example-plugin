@@ -5,9 +5,13 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
+import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
+import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_BOOTH_GAME_OBJECT;
+import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCATION;
 
+@Slf4j
 public class BankTask extends AbstractTask {
 
     @Inject
@@ -16,10 +20,16 @@ public class BankTask extends AbstractTask {
     @Inject
     private BankService bankService;
 
+    @Inject
+    private WoodcuttingConfig config;
+
+    // TODO
     @Override
     public boolean validate() {
         return ctx.players().local().isIdle() &&
+                !bankService.isOpen() &&
                 ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() &&
+                !ctx.players().local().isInArea(BANK_LOCATION, 3) &&
                 ctx.inventory().isFull();
     }
 
@@ -28,8 +38,11 @@ public class BankTask extends AbstractTask {
         GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
 
         if(bankBooth != null) {
-            ctx.getMouse().move(bankBooth.raw());
+            if(config.useMouse()) {
+                ctx.getMouse().move(bankBooth.raw());
+            }
             bankBooth.interact("Bank");
+            log.info("Opening Bank and sleeping");
             sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         }
 

@@ -34,7 +34,9 @@ public class ChopLogsTask extends AbstractTask {
 
         if(tree != null) {
             plugin.setTargetTree(tree.raw());
-            ctx.getMouse().move(tree.raw());
+            if(config.useMouse()) {
+                ctx.getMouse().move(tree.raw());
+            }
             tree.interact("Chop down");
             sleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(5000, 6000));
         }
