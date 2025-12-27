@@ -52,6 +52,9 @@ as arguments when you run the JAR. See example below.
 Once you have the example plugin cloned and setup within Intellij run plugins with:
 
 ```shell
+export GITHUB_ACTOR=<github-username>
+export GITHUB_TOKEN=<github-personal-access-token>
+
 ./gradlew build
 
 java -jar ./build/libs/kraken-example-plugin-1.0.0.jar --developer-mode com.krakenplugins.example.mining.MiningPlugin

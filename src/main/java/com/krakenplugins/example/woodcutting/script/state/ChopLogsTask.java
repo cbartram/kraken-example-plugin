@@ -3,6 +3,7 @@ package com.krakenplugins.example.woodcutting.script.state;
 import com.google.inject.Inject;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
+import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
@@ -19,11 +20,13 @@ public class ChopLogsTask extends AbstractTask {
     @Inject
     private SleepService sleepService;
 
+    @Inject
+    private BankService bankService;
+
     @Override
     public boolean validate() {
         return ctx.players().local().isIdle()
-                && !ctx.inventory().isFull()
-                && ctx.gameObjects().within(config.treeRadius()).withName(config.treeName()).random() != null;
+                && !ctx.inventory().isFull() && !bankService.isOpen();
     }
 
     @Override

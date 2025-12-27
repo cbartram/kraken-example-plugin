@@ -5,11 +5,14 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.container.bank.BankInventoryEntity;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
+import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCATION;
 
+@Slf4j
 public class DepositLogsTask extends AbstractTask {
 
     @Inject
@@ -26,6 +29,7 @@ public class DepositLogsTask extends AbstractTask {
     public boolean validate() {
         boolean playerInventoryFull = ctx.inventory().isFull();
         boolean playerInBank = ctx.players().local().isInArea(BANK_LOCATION, 3);
+        log.info("Inventory full: {}, player in bank: {}, bank open: {}", playerInventoryFull, playerInBank, bankService.isOpen());
         return playerInventoryFull && bankService.isOpen() && playerInBank;
     }
 
@@ -48,7 +52,7 @@ public class DepositLogsTask extends AbstractTask {
         }
 
         bankService.close();
-        return 1000;
+        return RandomService.between(600, 1400);
     }
 
     @Override
