@@ -1,8 +1,8 @@
-package com.krakenplugins.example.woodcutting.overlay;
+package com.krakenplugins.example.fishing.overlay;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.krakenplugins.example.woodcutting.WoodcuttingPlugin;
+import com.krakenplugins.example.fishing.FishingPlugin;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
@@ -13,12 +13,12 @@ import java.awt.*;
 @Singleton
 public class ScriptOverlay extends OverlayPanel {
 
-    private static final Color HEADER_COLOR = Color.GREEN;
+    private static final Color HEADER_COLOR = Color.CYAN;
 
-    private final WoodcuttingPlugin plugin;
+    private final FishingPlugin plugin;
 
     @Inject
-    private ScriptOverlay(WoodcuttingPlugin plugin) {
+    private ScriptOverlay(FishingPlugin plugin) {
         this.plugin = plugin;
         setPosition(OverlayPosition.TOP_LEFT);
     }
@@ -26,13 +26,13 @@ public class ScriptOverlay extends OverlayPanel {
     @Override
     public Dimension render(Graphics2D graphics) {
             panelComponent.getChildren().add(TitleComponent.builder()
-                    .text("Auto Chopper")
+                    .text("Auto Fisher")
                     .color(HEADER_COLOR)
                     .build());
             panelComponent.getChildren().add(TitleComponent.builder().text("").build());
             addTextLine("Status: " + plugin.getStatus());
             addTextLine("Runtime: " + plugin.getRuntime());
-            addTextLine("Logs Chopped: " + plugin.getLogsChopped());
+            addTextLine("Fish Caught: " + plugin.getFishCaught());
         return super.render(graphics);
     }
 
