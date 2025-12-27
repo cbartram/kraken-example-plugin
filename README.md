@@ -1,3 +1,21 @@
+<br />
+<div align="center">
+  <a href="https://kraken-plugins.com">
+    <img src="lib/src/main/resources/kraken.png" alt="Logo" width="128" height="128">
+  </a>
+
+<h3 align="center">Kraken Example Plugins</h3>
+
+  <p align="center">
+   An set of example automation plugins utilizing the Kraken API
+    <br />
+</div>
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+
 # Kraken Example Plugins
 
 This repository contains examples for writing automation plugins using the [Kraken API](https://github.com/cbartram/kraken-api.git).
@@ -83,3 +101,13 @@ This project is licensed under the [GNU General Public License 3.0](LICENSE.md).
 * **RuneLite** — The splash screen and much of the core codebase come from RuneLite.
 * **Microbot** — For clever ideas on client and plugin interaction.
 * **Packet Utils** - Plugin from Ethan Vann providing access to complex packet sending functionality which was used to develop the core.packet package of the API
+
+
+[contributors-shield]: https://img.shields.io/github/contributors/cbartram/kraken-example-plugin.svg?style=for-the-badge
+[contributors-url]: https://github.com/cbartram/kraken-example-plugin/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/cbartram/kraken-example-plugin.svg?style=for-the-badge
+[forks-url]: https://github.com/cbartram/kraken-example-plugin/network/members
+[stars-shield]: https://img.shields.io/github/stars/cbartram/kraken-example-plugin.svg?style=for-the-badge
+[stars-url]: https://github.com/cbartram/kraken-example-plugin/stargazers
+[issues-shield]: https://img.shields.io/github/issues/cbartram/kraken-example-plugin.svg?style=for-the-badge
+[issues-url]: https://github.com/cbartram/kraken-example-plugin/issues
