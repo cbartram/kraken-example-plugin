@@ -152,6 +152,6 @@ public class DropFish extends PriorityTask {
 
     @Override
     public int getPriority() {
-        return 0;
+        return -1;
     }
 }

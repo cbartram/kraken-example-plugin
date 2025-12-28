@@ -5,7 +5,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
 import com.kraken.api.query.npc.NpcEntity;
-import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
 import net.runelite.api.Client;
@@ -24,16 +23,14 @@ public class SceneOverlay extends Overlay {
     private final Context ctx;
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final FishingConfig config;
-    private final LocalPathfinder pathfinder;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, FishingPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, FishingConfig config, LocalPathfinder pathfinder) {
+    public SceneOverlay(Client client, Context ctx, FishingPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, FishingConfig config) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
-        this.pathfinder = pathfinder;
 
         this.setPosition(OverlayPosition.DYNAMIC);
         this.setLayer(OverlayLayer.ABOVE_WIDGETS);
@@ -45,28 +42,19 @@ public class SceneOverlay extends Overlay {
             return null;
         }
 
-        if(config.renderPath()) {
-            pathfinder.renderPath(plugin.getCurrentPath(), graphics, Color.GREEN);
-        }
-
         if(config.highlightTargetSpot()) {
             renderTargetSpot();
         }
 
         if(config.debug()) {
-            renderDebug(graphics);
             renderNearbySpots(graphics);
         }
 
         return null;
     }
 
-    private void renderDebug(Graphics2D graphics) {
-
-    }
-
     private void renderTargetSpot() {
-        if(plugin.getTargetSpot() != null) {
+        if(plugin.getTargetSpot() != null && plugin.getTargetSpot().raw() != null) {
             modelOutlineRenderer.drawOutline(plugin.getTargetSpot().raw(), 2, Color.GREEN, 2);
         }
     }
@@ -80,7 +68,7 @@ public class SceneOverlay extends Overlay {
             List<NpcEntity> spots = ctx.npcs()
                     .within(10)
                     .reachable()
-                    .withName("Fishing spot")
+                    .nameContains("fishing spot")
                     .list();
 
             for(NpcEntity spot : spots) {

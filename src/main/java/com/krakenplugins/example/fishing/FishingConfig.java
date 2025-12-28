@@ -80,10 +80,21 @@ public interface FishingConfig extends Config {
 	}
 
 	@ConfigItem(
+			keyName = "dropFish",
+			name = "Drop Fish",
+			description = "Automatically drops the fish using the provided pattern.",
+			position = 2,
+			section = fishing
+	)
+	default boolean dropFish() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "dropPattern",
 			name = "Drop Pattern",
 			description = "Determines which pattern to use to drop the fish.",
-			position = 2,
+			position = 3,
 			section = fishing
 	)
 	default InventoryOrder dropPattern() {
@@ -94,7 +105,7 @@ public interface FishingConfig extends Config {
 			keyName = "barbVillageCook",
 			name = "Cook Fish (Barb Village)",
 			description = "Automatically uses the fire to cook fish in the Barbarian Village.",
-			position = 3,
+			position = 4,
 			section = fishing
 	)
 	default boolean barbVillageCook() {
@@ -118,18 +129,6 @@ public interface FishingConfig extends Config {
 	default boolean highlightTargetSpot() {
 		return false;
 	}
-
-	@ConfigItem(
-			keyName = "renderPath",
-			name = "Render Path",
-			description = "Show the computed path to your destination on the screen.",
-			position = 3,
-			section = overlay
-	)
-	default boolean renderPath() {
-		return false;
-	}
-
 
 	@ConfigItem(
 			keyName = "debug",

@@ -42,8 +42,7 @@ public class FishingScript extends Script {
 
     public void setTasksForLocation(FishingLocation location) {
         List<PriorityTask> tasks = new ArrayList<>();
-
-        if(!config.barbVillageCook() || location != FishingLocation.BARBARIAN_VILLAGE) {
+        if(config.dropFish()) {
             tasks.add(dropFish);
         }
 

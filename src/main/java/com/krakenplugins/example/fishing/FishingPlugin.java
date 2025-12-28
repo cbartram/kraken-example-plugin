@@ -109,7 +109,7 @@ public class FishingPlugin extends Plugin {
         if(event.getGroup().equals("autofisher")) {
             String key = event.getKey();
 
-            if(key.equals("fishingLocation")) {
+            if(key.equals("fishingLocation") || key.equals("dropFish")) {
                 log.info("Updating fishing location to: {}", config.fishingLocation().name());
                 fishingScript.setTasksForLocation(config.fishingLocation());
             }
