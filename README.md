@@ -1,7 +1,7 @@
 <br />
 <div align="center">
   <a href="https://kraken-plugins.com">
-    <img src="lib/src/main/resources/kraken.png" alt="Logo" width="128" height="128">
+    <img src="src/main/resources/kraken.png" alt="Logo" width="128" height="128">
   </a>
 
 <h3 align="center">Kraken Example Plugins</h3>
