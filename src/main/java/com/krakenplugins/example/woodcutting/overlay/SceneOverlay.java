@@ -15,7 +15,6 @@ import net.runelite.client.ui.overlay.*;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import java.awt.*;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCATION;
@@ -108,14 +107,6 @@ public class SceneOverlay extends Overlay {
 
             for(GameObjectEntity tree : trees) {
                 int distance = localPoint.distanceTo(tree.raw().getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
-
-                String[] rawActions = tree.getObjectComposition().getActions();
-                String actionString = "[]";
-                if (rawActions != null) {
-                    actionString = Arrays.toString(Arrays.stream(rawActions)
-                            .filter(s -> s != null && !s.isEmpty())
-                            .toArray());
-                }
 
                 String overlayText = String.format("Dist: %d", distance);
                 net.runelite.api.Point textLocation = tree.raw().getCanvasTextLocation(graphics, overlayText, 0);
