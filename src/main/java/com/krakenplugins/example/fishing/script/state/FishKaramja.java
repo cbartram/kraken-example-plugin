@@ -1,8 +1,8 @@
 package com.krakenplugins.example.fishing.script.state;
 
-import com.kraken.api.core.script.AbstractTask;
+import com.kraken.api.core.script.PriorityTask;
 
-public class FishKaramja extends AbstractTask {
+public class FishKaramja extends PriorityTask {
     @Override
     public boolean validate() {
         return false;
@@ -16,5 +16,10 @@ public class FishKaramja extends AbstractTask {
     @Override
     public String status() {
         return "";
+    }
+
+    @Override
+    public int getPriority() {
+        return 0;
     }
 }

@@ -42,6 +42,7 @@ in their respective README's linked below.
 
 - [Mining Plugin](docs/MINING.md)
 - [Woodcutting Plugin](docs/WOODCUTTING.md)
+- [Fishing Plugin](docs/FISHING.md)
 
 # QuickStart
 

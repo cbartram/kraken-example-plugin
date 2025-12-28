@@ -2,19 +2,24 @@ package com.krakenplugins.example.fishing.script;
 
 
 import com.google.inject.Inject;
+import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
+import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.script.state.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 public class FishingScript extends Script {
 
-    private List<Task> tasks = new ArrayList<>();
+    private List<PriorityTask> tasks = new ArrayList<>();
+
+    private final FishingConfig config;
     private final DropFish dropFish;
     private final FishKaramja fishKaramja;
     private final FishBarbarianVillage fishBarbarianVillage;
@@ -25,8 +30,9 @@ public class FishingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public FishingScript(final DropFish dropFish, final FishKaramja fishKaramja, final FishBarbarianVillage fishBarbarianVillage,
+    public FishingScript(final FishingConfig config, final DropFish dropFish, final FishKaramja fishKaramja, final FishBarbarianVillage fishBarbarianVillage,
                          final FishDraynor fishDraynor, final CookFish cookFish) {
+        this.config = config;
         this.dropFish = dropFish;
         this.fishKaramja = fishKaramja;
         this.fishBarbarianVillage = fishBarbarianVillage;
@@ -35,8 +41,12 @@ public class FishingScript extends Script {
     }
 
     public void setTasksForLocation(FishingLocation location) {
-        List<Task> tasks = new ArrayList<>();
-        tasks.add(dropFish);
+        List<PriorityTask> tasks = new ArrayList<>();
+
+        if(!config.barbVillageCook() || location != FishingLocation.BARBARIAN_VILLAGE) {
+            tasks.add(dropFish);
+        }
+
         switch (location) {
             case DRAYNOR_VILLAGE:
                 tasks.add(fishDraynor);
@@ -55,6 +65,7 @@ public class FishingScript extends Script {
         }
 
         this.tasks = tasks;
+        this.tasks.sort(Comparator.comparingInt(PriorityTask::getPriority));
     }
 
     @Override

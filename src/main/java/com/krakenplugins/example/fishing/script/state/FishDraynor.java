@@ -1,7 +1,7 @@
 package com.krakenplugins.example.fishing.script.state;
 
 import com.google.inject.Inject;
-import com.kraken.api.core.script.AbstractTask;
+import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
@@ -11,7 +11,7 @@ import com.krakenplugins.example.fishing.script.FishingLocation;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FishDraynor extends AbstractTask {
+public class FishDraynor extends PriorityTask {
 
     @Inject
     private FishingConfig config;
@@ -47,5 +47,10 @@ public class FishDraynor extends AbstractTask {
     @Override
     public String status() {
         return "Fishing (Draynor Village)";
+    }
+
+    @Override
+    public int getPriority() {
+        return 0;
     }
 }

@@ -1,7 +1,7 @@
 package com.krakenplugins.example.fishing.script.state;
 
 import com.google.inject.Inject;
-import com.kraken.api.core.script.AbstractTask;
+import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 @Slf4j
-public class DropFish extends AbstractTask {
+public class DropFish extends PriorityTask {
 
     @Inject
     private FishingConfig config;
@@ -148,5 +148,10 @@ public class DropFish extends AbstractTask {
     @Override
     public String status() {
         return "Dropping items";
+    }
+
+    @Override
+    public int getPriority() {
+        return 0;
     }
 }
