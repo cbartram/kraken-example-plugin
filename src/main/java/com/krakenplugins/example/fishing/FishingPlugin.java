@@ -75,6 +75,10 @@ public class FishingPlugin extends Plugin {
     private int fishCaught;
 
     @Getter
+    @Setter
+    private long lastDropTimestamp = 0;
+
+    @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     @Provides

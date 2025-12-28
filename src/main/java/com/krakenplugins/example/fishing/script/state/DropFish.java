@@ -6,6 +6,7 @@ import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.fishing.FishingConfig;
+import com.krakenplugins.example.fishing.FishingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -16,8 +17,19 @@ public class DropFish extends AbstractTask {
     @Inject
     private FishingConfig config;
 
-    // LATCH: State memory to persist "Dropping" mode
+    @Inject
+    private FishingPlugin plugin;
+
     private boolean isDropping = false;
+
+    // PROBABILITY STATE
+    // 0 = 5% chance (Normal)
+    // 1 = 3% chance (Caution)
+    // 2 = 1% chance (Strict)
+    private int missChanceState = 0;
+
+    // How many items to process before relaxing the probability back to the previous state
+    private int recoveryCounter = 0;
 
     @Override
     public boolean validate() {
@@ -31,14 +43,13 @@ public class DropFish extends AbstractTask {
             isDropping = true;
         } else if (!hasFish) {
             isDropping = false;
+            missChanceState = 0;
+            recoveryCounter = 0;
         }
 
         return isDropping;
     }
 
-    // TODO 5% chance to not drop the item, simulating a mis-click, continue to drop the rest of the items and then have it go
-    // back and re-drop the previously missed item. Missing an item should shift the distribution so the chance that another missed item is 3% for the next
-    // random 3-5 items. Then back to 5%.
     @Override
     public int execute() {
         List<Integer> fishIds = config.fishingLocation().getFishIds();
@@ -49,26 +60,89 @@ public class DropFish extends AbstractTask {
 
         if (items.isEmpty()) {
             isDropping = false;
+            missChanceState = 0;
+            recoveryCounter = 0;
+            plugin.setLastDropTimestamp(System.currentTimeMillis()); // <--- ADD THIS
             return 600;
         }
 
         // Determine drop count for this specific tick (burst vs single)
-        int dropsThisTick = RandomService.between(4, 7);
+        int dropsThisTick = RandomService.between(2, 6);
 
         for (int i = 0; i < Math.min(items.size(), dropsThisTick); i++) {
             InventoryEntity item = items.get(i);
 
+            // Check if we should simulate a miss based on current state
+            if (shouldMiss()) {
+                handleMiss(item);
+                continue;
+            }
+
+            // Normal Execution
             if (config.useMouse()) {
                 ctx.getMouse().move(item.raw());
             }
 
             item.drop();
-            SleepService.sleep(32, 75);
+            handleRecovery();
+
+            SleepService.sleep(15, 46);
         }
 
-        // Return delay for next loop.
-        // 600ms is 1 tick. Returning slightly less (e.g., 400-600) ensures we catch the next tick.
         return RandomService.between(400, 600);
+    }
+
+    /**
+     * Determines if we should miss based on the current probability state.
+     */
+    private boolean shouldMiss() {
+        double chance;
+        switch (missChanceState) {
+            case 1:  chance = 0.03; break;
+            case 2:  chance = 0.01; break;
+            default: chance = 0.05; break;
+        }
+        return Math.random() < chance;
+    }
+
+    /**
+     * Updates state when a miss occurs.
+     * Increases strictness and sets the recovery counter.
+     */
+    private void handleMiss(InventoryEntity item) {
+        log.info("Simulating misclick on item slot: " + item.raw().getSlot());
+
+        // Simulate the time wasted by a misclick (move mouse but don't drop)
+        if (config.useMouse()) {
+            ctx.getMouse().move(item.raw());
+        }
+        SleepService.sleep(40, 100); // Slight pause simulating realization of miss
+
+        if (missChanceState < 2) {
+            missChanceState++;
+        }
+        recoveryCounter = RandomService.between(3, 5);
+    }
+
+    /**
+     * Decrements the recovery counter.
+     * If counter hits 0, relaxes the strictness back toward normal.
+     */
+    private void handleRecovery() {
+        if (recoveryCounter > 0) {
+            recoveryCounter--;
+
+            // If we have processed the required "safe" items, relax the state
+            if (recoveryCounter == 0 && missChanceState > 0) {
+                missChanceState--;
+
+                // If we relaxed to State 1 (3%), we still need to prove stability
+                // before going back to State 0 (5%). Reset counter.
+                if (missChanceState > 0) {
+                    recoveryCounter = RandomService.between(3, 5);
+                }
+            }
+        }
     }
 
     @Override
