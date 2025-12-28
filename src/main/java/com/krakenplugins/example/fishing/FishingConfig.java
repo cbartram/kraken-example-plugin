@@ -90,6 +90,17 @@ public interface FishingConfig extends Config {
 		return InventoryOrder.TOP_DOWN_LEFT_RIGHT;
 	}
 
+	@ConfigItem(
+			keyName = "barbVillageCook",
+			name = "Cook Fish (Barb Village)",
+			description = "Automatically uses the fire to cook fish in the Barbarian Village.",
+			position = 3,
+			section = fishing
+	)
+	default boolean barbVillageCook() {
+		return false;
+	}
+
 	@ConfigSection(
 		name = "Overlays",
 		description = "Script overlay options",
