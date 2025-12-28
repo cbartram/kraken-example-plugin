@@ -16,9 +16,6 @@ import static com.krakenplugins.example.mining.MiningPlugin.*;
 public class MiningTask extends AbstractTask {
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private MiningPlugin plugin;
 
     @Override
@@ -44,13 +41,13 @@ public class MiningTask extends AbstractTask {
                 plugin.setTargetRock(ironRock.raw());
                 ctx.getMouse().move(ironRock.raw());
                 ironRock.interact("Mine");
-                sleepService.sleepUntilIdle();
+                SleepService.sleepUntilIdle();
                 return 250;
             }
 
             // If player is mining and target rock is not depleted
             if (isPlayerMining(ctx.players().local().raw()) || ctx.players().local().isMoving()) {
-                sleepService.sleepUntilIdle();
+                SleepService.sleepUntilIdle();
             }
         }
 
@@ -64,7 +61,7 @@ public class MiningTask extends AbstractTask {
 
         // Wait for the player to start mining (or moving to the rock).
         // If the player is still idle after a timeout, something went wrong, and we should try again.
-        sleepService.sleepUntilIdle();
+        SleepService.sleepUntilIdle();
         return 250;
     }
 

@@ -3,7 +3,6 @@ package com.krakenplugins.example.fishing.script.state;
 import com.google.inject.Inject;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.npc.NpcEntity;
-import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
@@ -19,9 +18,6 @@ public class FishBarbarianVillage extends AbstractTask {
     @Inject
     private FishingConfig config;
 
-    @Inject
-    private SleepService sleepService;
-
     @Override
     public boolean validate() {
         // Rod and feathers
@@ -31,6 +27,9 @@ public class FishBarbarianVillage extends AbstractTask {
                 !ctx.inventory().isFull();
     }
 
+
+    // TODO Logic that won't immediately click on the next spot as soon as this one dissapears (instead distribution on if this tick we click the next spot)
+    // this simulates human: "oh I forgot to immediately click once my character went idle".
     @Override
     public int execute() {
         NpcEntity spot = ctx.npcs().withId(FishingLocation.BARBARIAN_VILLAGE.getSpotId()).nearest();
@@ -40,12 +39,12 @@ public class FishBarbarianVillage extends AbstractTask {
                 ctx.getMouse().move(spot.raw());
             }
             if (spot.interact("Lure")) {
-                sleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000);
+                SleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000);
             }
         } else {
             log.info("No spot found.");
         }
-        return RandomService.between(1200, 1800);
+        return 0;
     }
 
     @Override

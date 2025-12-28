@@ -26,9 +26,6 @@ public class WalkToTrees extends AbstractTask  {
     private MovementService movementService;
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private WoodcuttingConfig config;
 
     @Override
@@ -50,7 +47,7 @@ public class WalkToTrees extends AbstractTask  {
         if(config.useMouse()) {
             movementService.moveTo(path.get(path.size() - 1));
         }
-        sleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == -1, 15000);
+        SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == -1, 15000);
         return 2000;
     }
 

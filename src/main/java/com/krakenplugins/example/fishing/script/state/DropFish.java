@@ -16,9 +16,6 @@ public class DropFish extends AbstractTask {
     @Inject
     private FishingConfig config;
 
-    @Inject
-    private SleepService sleepService;
-
     // LATCH: State memory to persist "Dropping" mode
     private boolean isDropping = false;
 
@@ -36,10 +33,12 @@ public class DropFish extends AbstractTask {
             isDropping = false;
         }
 
-        log.info("Is Dropping: {}", isDropping);
         return isDropping;
     }
 
+    // TODO 5% chance to not drop the item, simulating a mis-click, continue to drop the rest of the items and then have it go
+    // back and re-drop the previously missed item. Missing an item should shift the distribution so the chance that another missed item is 3% for the next
+    // random 3-5 items. Then back to 5%.
     @Override
     public int execute() {
         List<Integer> fishIds = config.fishingLocation().getFishIds();
@@ -64,7 +63,7 @@ public class DropFish extends AbstractTask {
             }
 
             item.drop();
-            sleepService.sleep(32, 75);
+            SleepService.sleep(32, 75);
         }
 
         // Return delay for next loop.

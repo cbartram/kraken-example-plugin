@@ -13,9 +13,6 @@ import static com.krakenplugins.example.mining.MiningPlugin.BANK_BOOTH_GAME_OBJE
 public class OpenBankTask extends AbstractTask {
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private BankService bankService;
 
     @Override
@@ -28,7 +25,7 @@ public class OpenBankTask extends AbstractTask {
         GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
         ctx.getMouse().move(booth.raw());
         booth.interact("Bank");
-        sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
+        SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         return 500;
     }
 

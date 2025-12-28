@@ -17,9 +17,6 @@ public class FishDraynor extends AbstractTask {
     private FishingConfig config;
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private FishingPlugin plugin;
 
     @Override
@@ -39,7 +36,7 @@ public class FishDraynor extends AbstractTask {
                 ctx.getMouse().move(spot.raw());
             }
             if (spot.interact("Small Net")) {
-                sleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000);
+                SleepService.sleepUntil(() -> ctx.players().local().isMoving() || ctx.players().local().raw().getAnimation() != -1, 5000);
             }
         } else {
             log.info("No spot found.");

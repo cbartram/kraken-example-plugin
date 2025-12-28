@@ -18,9 +18,6 @@ public class ChopLogsTask extends AbstractTask {
     private WoodcuttingConfig config;
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private BankService bankService;
 
     @Override
@@ -41,7 +38,7 @@ public class ChopLogsTask extends AbstractTask {
                 ctx.getMouse().move(tree.raw());
             }
             tree.interact("Chop down");
-            sleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(5000, 6000));
+            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(5000, 6000));
         }
 
         return 1200;

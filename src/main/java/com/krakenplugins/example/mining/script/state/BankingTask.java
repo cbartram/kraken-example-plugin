@@ -18,9 +18,6 @@ public class BankingTask extends AbstractTask {
     private BankService bankService;
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private WalkToBankTask walkToBankTask;
 
     @Override
@@ -35,7 +32,7 @@ public class BankingTask extends AbstractTask {
         BankInventoryEntity iron = ctx.bankInventory().withName("Iron ore").first();
         ctx.getMouse().move(iron.raw());
         iron.depositAll();
-        sleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
+        SleepService.sleepUntil(() -> ctx.inventory().withName("Iron ore").stream().findAny().isEmpty(), 3000);
 
         // TODO Get the close widget and move mouse to it
 

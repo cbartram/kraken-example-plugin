@@ -15,15 +15,11 @@ import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCAT
 public class BankTask extends AbstractTask {
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private BankService bankService;
 
     @Inject
     private WoodcuttingConfig config;
 
-    // TODO
     @Override
     public boolean validate() {
         return ctx.players().local().isIdle() &&
@@ -43,7 +39,7 @@ public class BankTask extends AbstractTask {
             }
             bankBooth.interact("Bank");
             log.info("Opening Bank and sleeping");
-            sleepService.sleepUntil(() -> bankService.isOpen(), 10000);
+            SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
         }
 
         return 1200;

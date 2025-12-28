@@ -19,9 +19,6 @@ public class DepositLogsTask extends AbstractTask {
     private BankService bankService;
 
     @Inject
-    private SleepService sleepService;
-
-    @Inject
     private WoodcuttingConfig config;
 
     // TODO Bug here after deposit is complete it should move to the ChopLogsTask state but doesnt
@@ -42,7 +39,7 @@ public class DepositLogsTask extends AbstractTask {
         }
 
         logs.depositAll();
-        sleepService.sleepUntil(() -> ctx.inventory().withName("logs").stream().findAny().isEmpty(), 3000);
+        SleepService.sleepUntil(() -> ctx.inventory().withName("logs").stream().findAny().isEmpty(), 3000);
 
         if(config.useMouse()) {
             WidgetEntity closeButton = ctx.widgets().withId(786434).first();
