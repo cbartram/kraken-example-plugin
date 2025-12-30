@@ -23,7 +23,7 @@ public class BankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-          return ctx.players().local().isIdle() && ctx.players().local().isInArea(EDGEVILLE_BANK, 3) &&
+          return ctx.players().local().isIdle() && ctx.players().local().isInArea(EDGEVILLE_BANK, 5) &&
                 !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(SAPPHIRE) && bankService.isOpen();
     }
 
@@ -61,6 +61,6 @@ public class BankTask extends AbstractTask {
 
     @Override
     public String status() {
-        return "Banking";
+        return "Walking to Bank";
     }
 }

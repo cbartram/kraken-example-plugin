@@ -85,6 +85,6 @@ public class CraftTask extends AbstractTask {
 
     @Override
     public String status() {
-        return "Crafting";
+        return "Crafting Necklaces";
     }
 }

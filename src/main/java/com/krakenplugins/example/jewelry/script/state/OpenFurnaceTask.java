@@ -24,7 +24,7 @@ public class OpenFurnaceTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.players().local().isInArea(EDGEVILLE_BANK, 3) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE)
+        return ctx.players().local().isInArea(EDGEVILLE_BANK, 5) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE)
                 && ctx.players().local().isIdle() && !bankService.isOpen();
     }
 
@@ -44,6 +44,6 @@ public class OpenFurnaceTask extends AbstractTask {
 
     @Override
     public String status() {
-        return "Opening Bank";
+        return "Walking to Furnace";
     }
 }

@@ -44,6 +44,6 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public String status() {
-        return "Opening Bank";
+        return "Banking";
     }
 }

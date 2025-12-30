@@ -6,12 +6,14 @@ import com.kraken.api.Context;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
 import net.runelite.api.Client;
-import net.runelite.client.ui.overlay.Overlay;
-import net.runelite.client.ui.overlay.OverlayLayer;
-import net.runelite.client.ui.overlay.OverlayPosition;
-import net.runelite.client.ui.overlay.OverlayPriority;
+import net.runelite.api.Perspective;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.client.ui.overlay.*;
 
 import java.awt.*;
+
+import static com.krakenplugins.example.jewelry.script.JewelryScript.EDGEVILLE_BANK;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.EDGEVILLE_FURNACE;
 
 @Singleton
 public class SceneOverlay extends Overlay {
@@ -45,6 +47,42 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderDebug(Graphics2D graphics) {
-        // Implement debug rendering
+        LocalPoint localPoint = LocalPoint.fromWorld(client, EDGEVILLE_BANK);
+
+        if (localPoint != null) {
+            // Check if player is in area using your requested method
+            boolean inArea = ctx.players().local().isInArea(EDGEVILLE_BANK, 5);
+
+            // Set Color based on state
+            Color color = inArea ? Color.GREEN : Color.RED;
+
+            // Render the area
+            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
+            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
+            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, localPoint, (5 * 2) + 1);
+
+            if (areaPoly != null) {
+                OverlayUtil.renderPolygon(graphics, areaPoly, color);
+            }
+        }
+
+
+        LocalPoint furnace = LocalPoint.fromWorld(client, EDGEVILLE_FURNACE);
+        if (furnace != null) {
+            // Check if player is in area using your requested method
+            boolean inArea = ctx.players().local().isInArea(EDGEVILLE_FURNACE, 3);
+
+            // Set Color based on state
+            Color color = inArea ? Color.GREEN : Color.RED;
+
+            // Render the area
+            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
+            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
+            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, furnace, (5 * 2) + 1);
+
+            if (areaPoly != null) {
+                OverlayUtil.renderPolygon(graphics, areaPoly, color);
+            }
+        }
     }
 }
