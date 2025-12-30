@@ -9,13 +9,15 @@ import com.krakenplugins.example.jewelry.JewelryConfig;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
+import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.SAPPHIRE;
+
 @Slf4j
 public class CraftTask extends AbstractTask {
 
-    private static final WorldPoint EDGEVILLE_FURNACE = new WorldPoint(3109, 3499, 0);
+    public static final WorldPoint EDGEVILLE_FURNACE = new WorldPoint(3109, 3499, 0);
     private static final int FURNACE = 16469;
-    private static final int SMELTING_ANIM = 1605; // TODO Check this
-
+    private static final int SMELTING_ANIM = 899;
     @Inject
     private JewelryConfig config;
 
@@ -25,7 +27,7 @@ public class CraftTask extends AbstractTask {
     @Override
     public boolean validate() {
         return ctx.players().local().isIdle() && ctx.players().local().isInArea(EDGEVILLE_FURNACE, 3) &&
-                ctx.inventory().hasItem(2357) && ctx.inventory().hasItem(1607);
+                ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE);
     }
 
     @Override
