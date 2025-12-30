@@ -53,27 +53,22 @@ public class CookFish extends PriorityTask {
 
         // logic: If the menu is open, we do NOT want to click the fire again.
         if (isProcessingInterfaceOpen()) {
-            log.info("Processing interface open, processing trout");
             if (processingService.getAmount() != 28) {
                 processingService.setAmount(28);
             }
 
-            // Press the button to cook the trout
-            processingService.process(333);
+            ctx.runOnClientThread(() -> processingService.process(333));
 
             // After we click confirm, there is a delay before the player starts animating (897).
             // If we don't sleep here, the script loops, sees the player is "Idle" (not yet animating),
             // and tries to click the fire again.
-            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == COOKING_ANIM, 3000);
+            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == COOKING_ANIM, 6000);
             return 600;
-        } else {
-            log.info("Processing service not open...");
         }
 
         // 3. Interact with Fire
         // We only reach here if we aren't cooking AND the interface isn't open.
         GameObjectEntity fire = ctx.gameObjects().withId(BARBARIAN_VILLAGE_FIRE).nearest();
-        log.info("Interacting with fire");
         if (fire != null && fire.interact("Cook")) {
             // Wait for the interface to open
             SleepService.sleepUntilTrue(() -> processingService.isOpen(), 400, 5000);

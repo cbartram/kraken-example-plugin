@@ -3,7 +3,7 @@ plugins {
 }
 
 def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '2.1.6'
+def krakenApiVersion = '2.1.7'
 
 group = 'com.krakenplugins'
 version = '1.0.0'
