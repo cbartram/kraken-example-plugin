@@ -2,27 +2,24 @@ package com.krakenplugins.example.jewelry.script.state;
 
 import com.google.inject.Inject;
 import com.kraken.api.core.script.AbstractTask;
+import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.query.gameobject.GameObjectEntity;
-import com.kraken.api.service.ui.processing.ProcessingService;
+import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
 
-import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
-import static com.krakenplugins.example.jewelry.script.JewelryScript.SAPPHIRE;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
 
 @Slf4j
 public class CraftTask extends AbstractTask {
 
-    public static final WorldPoint EDGEVILLE_FURNACE = new WorldPoint(3109, 3499, 0);
-    private static final int FURNACE = 16469;
     private static final int SMELTING_ANIM = 899;
-    @Inject
-    private JewelryConfig config;
 
     @Inject
-    private ProcessingService processingService;
+    private JewelryConfig config;
 
     @Override
     public boolean validate() {
@@ -30,33 +27,57 @@ public class CraftTask extends AbstractTask {
                 ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE);
     }
 
+    public boolean isCraftingInterfaceOpen() {
+        Widget w = ctx.getClient().getWidget(InterfaceID.CraftingGold.UNIVERSE);
+        if(w == null) return false;
+
+        return !w.isSelfHidden();
+    }
+
     @Override
     public int execute() {
-           if (ctx.players().local().raw().getAnimation() == SMELTING_ANIM) {
+        for(InventoryEntity e : ctx.inventory().list()) {
+            log.info("Item: {} - {}", e.getName(), e.getId());
+        }
+
+        log.info(ctx.inventory().hasItem(GOLD_BAR) + " --- " + ctx.inventory().hasItem(SAPPHIRE) + "----" + ctx.inventory().hasItem("Necklace Mould"));
+
+
+        if (ctx.players().local().raw().getAnimation() == SMELTING_ANIM) {
             log.info("Player SMELTING already, waiting");
             return 600;
         }
 
-        // logic: If the menu is open, we do NOT want to click the fire again.
-        if (processingService.isOpen()) {
-            if (processingService.getAmount() != 28) {
-                processingService.setAmount(28);
+        if (isCraftingInterfaceOpen()) {
+            // Sapphire: Id	29229080 -> 446.24 or Id 29229078 -> 446.22
+            // Option=Make <col=ff9040>Sapphire necklace</col>, Target=, Param0=-1,
+            // Param1=29229080, MenuAction=CC_OP, ItemId=1656, id=1, itemOp=-1,
+            // str=MenuOptionClicked(getParam0=-1, getParam1=29229080, getMenuOption=Make <col=ff9040>Sapphire necklace</col>, getMenuTarget=, getMenuAction=CC_OP, getId=1)
+
+            SleepService.tick();
+
+            WidgetEntity widget = ctx.widgets().get(29229080);
+            if(widget != null && !widget.isNull()) {
+                Widget w = widget.raw();
+                log.info("Widget Sapphire Necklace: {}, {}, {}, {}", w.getName(), w.getActions(), w.getIndex(), w.getItemId());
+                if(config.useMouse()) {
+                    ctx.getMouse().move(widget.raw());
+                }
+
+                widget.interact("Make <col=ff9040>Sapphire necklace</col>");
+            } else {
+                log.info("Widget null: {}", widget);
             }
 
-            // TODO Figure this out
-            ctx.runOnClientThread(() -> processingService.process(333));
-
-            // After we click confirm, there is a delay before the player starts animating (897).
-            // If we don't sleep here, the script loops, sees the player is "Idle" (not yet animating),
-            // and tries to click the fire again.
             SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == SMELTING_ANIM, 6000);
             return 600;
+        } else {
+            log.info("Crafting interface is not open...");
         }
 
-        GameObjectEntity fire = ctx.gameObjects().withId(FURNACE).nearest();
-        if (fire != null && fire.interact("Smelt")) {
-            // Wait for the interface to open
-            SleepService.sleepUntilTrue(() -> processingService.isOpen(), 400, 5000);
+        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE_GAME_OBJECT).nearest();
+        if (furnace != null && furnace.interact("Smelt")) {
+            SleepService.sleepUntilTrue(this::isCraftingInterfaceOpen, 400, 5000);
         }
 
         return 0;

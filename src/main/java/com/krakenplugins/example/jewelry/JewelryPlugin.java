@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -82,6 +83,13 @@ public class JewelryPlugin extends Plugin {
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
         overlayManager.remove(sceneOverlay);
+    }
+
+    @Subscribe
+    private void onMenuOptionClicked(MenuOptionClicked event) {
+        log.info("Option={}, Target={}, Param0={}, Param1={}, MenuAction={}, ItemId={}, id={}, itemOp={}, str={}",
+                event.getMenuOption(), event.getMenuTarget(), event.getParam0(), event.getParam1(), event.getMenuAction().name(), event.getItemId(),
+                event.getId(), event.getItemOp(), event);
     }
 
     @Subscribe

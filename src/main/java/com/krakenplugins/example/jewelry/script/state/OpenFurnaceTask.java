@@ -7,37 +7,37 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
-import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
 
-@Slf4j
 @Singleton
-public class OpenBankTask extends AbstractTask {
-
-    @Inject
-    private BankService bankService;
+public class OpenFurnaceTask extends AbstractTask {
 
     @Inject
     private JewelryConfig config;
 
+    @Inject
+    private CraftTask craftTask;
+
+    @Inject
+    private BankService bankService;
+
     @Override
     public boolean validate() {
-        return !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(SAPPHIRE)
+        return ctx.players().local().isInArea(EDGEVILLE_BANK, 3) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE)
                 && ctx.players().local().isIdle() && !bankService.isOpen();
     }
 
     @Override
     public int execute() {
-        GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_ID).nearest();
-        if(bankBooth != null) {
+        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE_GAME_OBJECT).nearest();
+        if(furnace != null) {
             if(config.useMouse()) {
-                ctx.getMouse().move(bankBooth.raw());
+                ctx.getMouse().move(furnace.raw());
             }
 
-            log.info("Opening bank");
-            bankBooth.interact("Bank");
-            SleepService.sleepUntil(() -> bankService.isOpen(), 8000);
+            furnace.interact("Smelt");
+            SleepService.sleepUntil(() -> craftTask.isCraftingInterfaceOpen(), 15000);
         }
         return 0;
     }
