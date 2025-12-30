@@ -35,7 +35,10 @@ public class BankTask extends AbstractTask {
 
     @Override
     public int execute() {
-        List<BankInventoryEntity> necklaces = ctx.bankInventory().withName("Sapphire Necklace").stream().limit(5).collect(Collectors.toList());
+
+
+
+        List<BankInventoryEntity> necklaces = ctx.bankInventory().withName(config.jewelry().getNecklaceName()).stream().limit(5).collect(Collectors.toList());
         BankInventoryEntity necklace = null;
 
         if (!necklaces.isEmpty()) {
@@ -52,7 +55,7 @@ public class BankTask extends AbstractTask {
                 ctx.getMouse().move(necklace.raw());
             }
             necklace.depositAll();
-            SleepService.sleepUntil(() -> ctx.inventory().withName("Sapphire Necklace").stream().findAny().isEmpty(), 3000);
+            SleepService.sleepUntil(() -> ctx.inventory().withName(config.jewelry().getNecklaceName()).stream().findAny().isEmpty(), 3000);
         }
 
         Runnable withdrawGold = () -> {
@@ -63,11 +66,11 @@ public class BankTask extends AbstractTask {
             }
         };
 
-        Runnable withdrawSapphire = () -> {
-            BankEntity sapphire = ctx.bank().withId(SAPPHIRE).first();
-            if (sapphire != null) {
-                log.info("Withdrawing Sapphire");
-                sapphire.withdraw(13);
+        Runnable withdrawGem = () -> {
+            BankEntity gem = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
+            if (gem != null) {
+                log.info("Withdrawing id: {}", config.jewelry().getSecondaryGemId());
+                gem.withdraw(13);
             }
         };
 
@@ -75,9 +78,9 @@ public class BankTask extends AbstractTask {
         if (random.nextBoolean()) {
             withdrawGold.run();
             sleepGaussian(600, 1800);
-            withdrawSapphire.run();
+            withdrawGem.run();
         } else {
-            withdrawSapphire.run();
+            withdrawGem.run();
             sleepGaussian(600, 1800);
             withdrawGold.run();
         }

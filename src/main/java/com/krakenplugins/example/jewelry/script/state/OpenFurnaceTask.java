@@ -24,7 +24,7 @@ public class OpenFurnaceTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.players().local().isInArea(EDGEVILLE_BANK, 5) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(SAPPHIRE)
+        return ctx.players().local().isInArea(EDGEVILLE_BANK, 5) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(config.jewelry().getSecondaryGemId())
                 && ctx.players().local().isIdle() && !bankService.isOpen();
     }
 

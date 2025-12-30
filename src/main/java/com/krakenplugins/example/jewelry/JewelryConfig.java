@@ -1,6 +1,7 @@
 package com.krakenplugins.example.jewelry;
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
+import com.krakenplugins.example.jewelry.script.Jewelry;
 import net.runelite.client.config.*;
 
 @ConfigGroup("autojewelry")
@@ -56,6 +57,24 @@ public interface JewelryConfig extends Config {
 	)
 	default int linearSteps() {
 		return 150;
+	}
+
+	@ConfigSection(
+			name = "Jewelry Crafting",
+			description = "Jewelry Crafting options",
+			position = 2
+	)
+	String crafting = "crafting";
+
+	@ConfigItem(
+			keyName = "jewelry",
+			name = "Jewelry",
+			description = "Sets the jewelry to craft.",
+			position = 1,
+			section = crafting
+	)
+	default Jewelry jewelry() {
+		return Jewelry.SAPPHIRE_NECKLACE;
 	}
 
 	@ConfigSection(
