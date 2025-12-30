@@ -78,7 +78,7 @@ public class SceneOverlay extends Overlay {
             // Render the area
             // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
             // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
-            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, furnace, (5 * 2) + 1);
+            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, furnace, (3 * 2) + 1);
 
             if (areaPoly != null) {
                 OverlayUtil.renderPolygon(graphics, areaPoly, color);
