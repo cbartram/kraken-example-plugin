@@ -17,7 +17,6 @@ import java.util.List;
 public class JewelryScript extends Script {
 
     public static final int GOLD_BAR = 2357;
-    public static final int SAPPHIRE = 1607;
     public static final int FURNACE_GAME_OBJECT = 16469;
     public static final int BANK_BOOTH_ID = 10355;
     public static final WorldPoint EDGEVILLE_FURNACE = new WorldPoint(3109, 3499, 0);

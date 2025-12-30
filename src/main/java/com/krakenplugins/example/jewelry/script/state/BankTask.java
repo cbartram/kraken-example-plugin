@@ -30,7 +30,7 @@ public class BankTask extends AbstractTask {
     @Override
     public boolean validate() {
           return ctx.players().local().isIdle() && ctx.players().local().isInArea(EDGEVILLE_BANK, 5) &&
-                !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(SAPPHIRE) && bankService.isOpen();
+                !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(config.jewelry().getSecondaryGemId()) && bankService.isOpen();
     }
 
     @Override

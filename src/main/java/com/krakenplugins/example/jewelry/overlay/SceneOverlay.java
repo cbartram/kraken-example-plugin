@@ -3,12 +3,14 @@ package com.krakenplugins.example.jewelry.overlay;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.ui.overlay.*;
+import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import java.awt.*;
 
@@ -21,13 +23,15 @@ public class SceneOverlay extends Overlay {
     private final JewelryPlugin plugin;
     private final Context ctx;
     private final JewelryConfig config;
+    private final ModelOutlineRenderer modelOutlineRenderer;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config) {
+    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config, ModelOutlineRenderer modelOutlineRenderer) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
         this.config = config;
+        this.modelOutlineRenderer = modelOutlineRenderer;
 
         this.setPosition(OverlayPosition.DYNAMIC);
         this.setLayer(OverlayLayer.ABOVE_WIDGETS);
@@ -43,7 +47,18 @@ public class SceneOverlay extends Overlay {
             renderDebug(graphics);
         }
 
+        if(config.targetBankBooth()) {
+            renderTargetBankBooth();
+        }
+
         return null;
+    }
+
+    private void renderTargetBankBooth() {
+        GameObjectEntity booth = plugin.getTargetBankBooth();
+        if(booth != null && booth.raw() != null) {
+            modelOutlineRenderer.drawOutline(booth.raw(), 2, Color.GREEN, 2);
+        }
     }
 
     private void renderDebug(Graphics2D graphics) {

@@ -85,10 +85,21 @@ public interface JewelryConfig extends Config {
 	String overlay = "overlay";
 
 	@ConfigItem(
+			keyName = "targetBankBooth",
+			name = "Show Target Bank Booth",
+			description = "Show the target bank booth.",
+			position = 1,
+			section = overlay
+	)
+	default boolean targetBankBooth() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "debug",
 			name = "Debug",
 			description = "Show debug information and overlays.",
-			position = 1,
+			position = 2,
 			section = overlay
 	)
 	default boolean debug() {

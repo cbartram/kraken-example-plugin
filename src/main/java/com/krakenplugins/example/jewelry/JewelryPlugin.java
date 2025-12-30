@@ -8,10 +8,12 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.krakenplugins.example.jewelry.overlay.SceneOverlay;
 import com.krakenplugins.example.jewelry.overlay.ScriptOverlay;
 import com.krakenplugins.example.jewelry.script.JewelryScript;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
@@ -60,6 +62,10 @@ public class JewelryPlugin extends Plugin {
 
     @Inject
     private JewelryConfig config;
+
+    @Getter
+    @Setter
+    private GameObjectEntity targetBankBooth;
 
     private final long startTime = System.currentTimeMillis();
 

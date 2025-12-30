@@ -16,7 +16,6 @@ import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
 public class CraftTask extends AbstractTask {
 
     private static final int SMELTING_ANIM = 899;
-    private static final int SAPPHIRE_NECKLACE_WIDGET = 29229080;
 
     @Inject
     private JewelryConfig config;
