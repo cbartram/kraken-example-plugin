@@ -6,31 +6,32 @@ import com.kraken.api.Context;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
+import com.krakenplugins.example.jewelry.script.JewelryScript;
 import net.runelite.api.Client;
-import net.runelite.api.Perspective;
-import net.runelite.api.coords.LocalPoint;
-import net.runelite.client.ui.overlay.*;
+import net.runelite.client.ui.overlay.Overlay;
+import net.runelite.client.ui.overlay.OverlayLayer;
+import net.runelite.client.ui.overlay.OverlayPosition;
+import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import java.awt.*;
-
-import static com.krakenplugins.example.jewelry.script.JewelryScript.EDGEVILLE_BANK;
-import static com.krakenplugins.example.jewelry.script.JewelryScript.EDGEVILLE_FURNACE;
 
 @Singleton
 public class SceneOverlay extends Overlay {
     private final Client client;
     private final JewelryPlugin plugin;
+    private final JewelryScript script;
     private final Context ctx;
     private final JewelryConfig config;
     private final ModelOutlineRenderer modelOutlineRenderer;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config, ModelOutlineRenderer modelOutlineRenderer) {
+    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config, ModelOutlineRenderer modelOutlineRenderer, JewelryScript script) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
         this.config = config;
+        this.script = script;
         this.modelOutlineRenderer = modelOutlineRenderer;
 
         this.setPosition(OverlayPosition.DYNAMIC);
@@ -62,42 +63,19 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderDebug(Graphics2D graphics) {
-        LocalPoint localPoint = LocalPoint.fromWorld(client, EDGEVILLE_BANK);
+        boolean inArea = ctx.players().local().isInArea(script.getEdgevilleBank());
+        boolean inFurnace = ctx.players().local().isInArea(script.getEdgevilleFurnace());
 
-        if (localPoint != null) {
-            // Check if player is in area using your requested method
-            boolean inArea = ctx.players().local().isInArea(EDGEVILLE_BANK, 5);
+        Color color = inArea ? Color.GREEN : Color.RED;
+        Color fill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
 
-            // Set Color based on state
-            Color color = inArea ? Color.GREEN : Color.RED;
+        script.getEdgevilleBank().render(client, graphics, fill, false);
+        script.getEdgevilleBank().render(client, graphics, color, true);
 
-            // Render the area
-            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
-            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
-            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, localPoint, (5 * 2) + 1);
+        Color furnaceOutline = inFurnace ? Color.GREEN : Color.RED;
+        Color furnaceFill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
 
-            if (areaPoly != null) {
-                OverlayUtil.renderPolygon(graphics, areaPoly, color);
-            }
-        }
-
-
-        LocalPoint furnace = LocalPoint.fromWorld(client, EDGEVILLE_FURNACE);
-        if (furnace != null) {
-            // Check if player is in area using your requested method
-            boolean inArea = ctx.players().local().isInArea(EDGEVILLE_FURNACE, 3);
-
-            // Set Color based on state
-            Color color = inArea ? Color.GREEN : Color.RED;
-
-            // Render the area
-            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
-            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
-            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, furnace, (3 * 2) + 1);
-
-            if (areaPoly != null) {
-                OverlayUtil.renderPolygon(graphics, areaPoly, color);
-            }
-        }
+        script.getEdgevilleFurnace().render(client, graphics, furnaceOutline, false);
+        script.getEdgevilleFurnace().render(client, graphics, furnaceFill, true);
     }
 }
