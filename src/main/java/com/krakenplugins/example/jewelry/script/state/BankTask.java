@@ -36,8 +36,6 @@ public class BankTask extends AbstractTask {
     @Override
     public int execute() {
 
-
-
         List<BankInventoryEntity> necklaces = ctx.bankInventory().withName(config.jewelry().getNecklaceName()).stream().limit(5).collect(Collectors.toList());
         BankInventoryEntity necklace = null;
 

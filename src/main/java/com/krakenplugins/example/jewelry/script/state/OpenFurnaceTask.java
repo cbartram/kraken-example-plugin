@@ -7,6 +7,7 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
+import com.krakenplugins.example.jewelry.JewelryPlugin;
 
 import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
 
@@ -22,6 +23,9 @@ public class OpenFurnaceTask extends AbstractTask {
     @Inject
     private BankService bankService;
 
+    @Inject
+    private JewelryPlugin jewelryPlugin;
+
     @Override
     public boolean validate() {
         return ctx.players().local().isInArea(EDGEVILLE_BANK, 5) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(config.jewelry().getSecondaryGemId())
@@ -30,6 +34,7 @@ public class OpenFurnaceTask extends AbstractTask {
 
     @Override
     public int execute() {
+        jewelryPlugin.setTargetBankBooth(null);
         GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE_GAME_OBJECT).nearest();
         if(furnace != null) {
             if(config.useMouse()) {
