@@ -37,9 +37,6 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public int execute() {
-
-        // TODO Find another nearby bank booth not always this one
-
         List<GameObjectEntity> bankBooths = ctx.gameObjects().withId(BANK_BOOTH_ID).sortByDistance().take(2);
         GameObjectEntity bankBooth = bankBooths.get((new Random()).nextInt(bankBooths.size()));
 
