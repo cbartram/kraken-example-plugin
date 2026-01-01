@@ -26,7 +26,6 @@ public class DepositLogsTask extends AbstractTask {
     public boolean validate() {
         boolean playerInventoryFull = ctx.inventory().isFull();
         boolean playerInBank = ctx.players().local().isInArea(BANK_LOCATION, 3);
-        log.info("Inventory full: {}, player in bank: {}, bank open: {}", playerInventoryFull, playerInBank, bankService.isOpen());
         return playerInventoryFull && bankService.isOpen() && playerInBank;
     }
 

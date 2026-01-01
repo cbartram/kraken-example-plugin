@@ -79,6 +79,10 @@ public class WoodcuttingPlugin extends Plugin {
     private int logsChopped;
 
     @Getter
+    @Setter
+    private long lastDropTimestamp = 0;
+
+    @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     @Provides
@@ -150,4 +154,3 @@ public class WoodcuttingPlugin extends Plugin {
         return woodcuttingScript.getStatus();
     }
 }
-

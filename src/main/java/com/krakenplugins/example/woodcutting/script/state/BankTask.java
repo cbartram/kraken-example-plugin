@@ -6,6 +6,7 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
+import com.krakenplugins.example.woodcutting.WoodcuttingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_BOOTH_GAME_OBJECT;
@@ -19,6 +20,9 @@ public class BankTask extends AbstractTask {
 
     @Inject
     private WoodcuttingConfig config;
+
+    @Inject
+    private WoodcuttingPlugin plugin;
 
     @Override
     public boolean validate() {
@@ -37,6 +41,8 @@ public class BankTask extends AbstractTask {
             if(config.useMouse()) {
                 ctx.getMouse().move(bankBooth.raw());
             }
+
+            plugin.setTargetTree(null);
             bankBooth.interact("Bank");
             log.info("Opening Bank and sleeping");
             SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
