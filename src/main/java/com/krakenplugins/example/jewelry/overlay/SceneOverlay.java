@@ -6,7 +6,6 @@ import com.kraken.api.Context;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
-import com.krakenplugins.example.jewelry.script.JewelryScript;
 import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -20,18 +19,16 @@ import java.awt.*;
 public class SceneOverlay extends Overlay {
     private final Client client;
     private final JewelryPlugin plugin;
-    private final JewelryScript script;
     private final Context ctx;
     private final JewelryConfig config;
     private final ModelOutlineRenderer modelOutlineRenderer;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config, ModelOutlineRenderer modelOutlineRenderer, JewelryScript script) {
+    public SceneOverlay(Client client, Context ctx, JewelryPlugin plugin, JewelryConfig config, ModelOutlineRenderer modelOutlineRenderer) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
         this.config = config;
-        this.script = script;
         this.modelOutlineRenderer = modelOutlineRenderer;
 
         this.setPosition(OverlayPosition.DYNAMIC);
@@ -63,19 +60,19 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderDebug(Graphics2D graphics) {
-        boolean inArea = ctx.players().local().isInArea(script.getEdgevilleBank());
-        boolean inFurnace = ctx.players().local().isInArea(script.getEdgevilleFurnace());
+        boolean inArea = ctx.players().local().isInArea(plugin.getEdgevilleBank());
+        boolean inFurnace = ctx.players().local().isInArea(plugin.getEdgevilleFurnace());
 
         Color color = inArea ? Color.GREEN : Color.RED;
         Color fill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
 
-        script.getEdgevilleBank().render(client, graphics, fill, false);
-        script.getEdgevilleBank().render(client, graphics, color, true);
+        plugin.getEdgevilleBank().render(client, graphics, fill, false);
+        plugin.getEdgevilleBank().render(client, graphics, color, true);
 
         Color furnaceOutline = inFurnace ? Color.GREEN : Color.RED;
         Color furnaceFill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
 
-        script.getEdgevilleFurnace().render(client, graphics, furnaceOutline, false);
-        script.getEdgevilleFurnace().render(client, graphics, furnaceFill, true);
+        plugin.getEdgevilleFurnace().render(client, graphics, furnaceOutline, false);
+        plugin.getEdgevilleFurnace().render(client, graphics, furnaceFill, true);
     }
 }
