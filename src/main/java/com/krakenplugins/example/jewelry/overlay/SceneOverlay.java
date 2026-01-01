@@ -63,16 +63,16 @@ public class SceneOverlay extends Overlay {
         boolean inArea = ctx.players().local().isInArea(plugin.getEdgevilleBank());
         boolean inFurnace = ctx.players().local().isInArea(plugin.getEdgevilleFurnace());
 
-        Color color = inArea ? Color.GREEN : Color.RED;
-        Color fill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
+        Color outline = inArea ? Color.GREEN : Color.RED;
+        Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
 
         plugin.getEdgevilleBank().render(client, graphics, fill, false);
-        plugin.getEdgevilleBank().render(client, graphics, color, true);
+        plugin.getEdgevilleBank().render(client, graphics, outline, true);
 
         Color furnaceOutline = inFurnace ? Color.GREEN : Color.RED;
-        Color furnaceFill = inArea ? new Color(18, 227, 61, 45) : new Color(223, 41, 41, 65);
+        Color furnaceFill = inFurnace ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
 
-        plugin.getEdgevilleFurnace().render(client, graphics, furnaceOutline, false);
-        plugin.getEdgevilleFurnace().render(client, graphics, furnaceFill, true);
+        plugin.getEdgevilleFurnace().render(client, graphics, furnaceFill, false);
+        plugin.getEdgevilleFurnace().render(client, graphics, furnaceOutline, true);
     }
 }
