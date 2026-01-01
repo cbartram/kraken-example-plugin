@@ -37,7 +37,7 @@ public class FindPathTask extends AbstractTask {
     private boolean isCurrentPositionGood() {
         // Check if we can burn logs to the West
         // We need as many tiles as we have logs
-        int logsCount = ctx.inventory().withName(config.logName()).count();
+        long logsCount = ctx.inventory().withName(config.logName()).count();
         return checkLine(ctx.players().local().raw().getWorldLocation(), -1, 0) >= logsCount;
     }
 
@@ -45,7 +45,7 @@ public class FindPathTask extends AbstractTask {
         WorldPoint center = ctx.players().local().raw().getWorldLocation();
         WorldPoint best = null;
         int maxLen = -1;
-        int logsCount = ctx.inventory().withName(config.logName()).count();
+        long logsCount = ctx.inventory().withName(config.logName()).count();
 
         // Search radius 15
         for (int x = -15; x <= 15; x++) {

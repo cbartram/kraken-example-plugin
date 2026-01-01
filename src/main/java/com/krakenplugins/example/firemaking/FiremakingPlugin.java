@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 )
 public class FiremakingPlugin extends Plugin {
 
-    public static final WorldPoint BANK_LOCATION = new WorldPoint(3092, 3243, 0);
+    public static final WorldPoint BANK_LOCATION = new WorldPoint(3167, 3489, 0);
     public static final int BANK_BOOTH_GAME_OBJECT = 10355;
 
     @Inject

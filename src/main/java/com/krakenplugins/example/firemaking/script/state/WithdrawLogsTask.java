@@ -24,7 +24,7 @@ public class WithdrawLogsTask extends AbstractTask {
     @Override
     public boolean validate() {
         boolean playerInventoryEmpty = ctx.inventory().withName(config.logName()).count() == 0;
-        boolean playerInBank = ctx.players().local().isInArea(BANK_LOCATION, 3);
+        boolean playerInBank = ctx.players().local().isInArea(BANK_LOCATION, 6);
         return playerInventoryEmpty && bankService.isOpen() && playerInBank;
     }
 

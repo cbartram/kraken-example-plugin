@@ -36,8 +36,8 @@ public class BurnLogsTask extends AbstractTask {
             if (config.useMouse()) {
                 ctx.getMouse().move(logs.raw());
             }
-            logs.interact("Use");
-            
+            logs.useOn(tinderbox.raw());
+
             SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(2000, 3000));
             SleepService.sleepUntil(() -> ctx.players().local().isIdle(), RandomService.between(3000, 5000));
         }
