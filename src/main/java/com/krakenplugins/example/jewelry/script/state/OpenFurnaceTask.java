@@ -8,9 +8,9 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
-import com.krakenplugins.example.jewelry.script.JewelryScript;
 
-import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.FURNACE_GAME_OBJECT;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
 
 @Singleton
 public class OpenFurnaceTask extends AbstractTask {
@@ -27,12 +27,9 @@ public class OpenFurnaceTask extends AbstractTask {
     @Inject
     private JewelryPlugin jewelryPlugin;
 
-    @Inject
-    private JewelryScript script;
-
     @Override
     public boolean validate() {
-        return ctx.players().local().isInArea(script.getEdgevilleBank()) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(config.jewelry().getSecondaryGemId())
+        return ctx.players().local().isInArea(jewelryPlugin.getEdgevilleBank()) && ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(config.jewelry().getSecondaryGemId())
                 && ctx.players().local().isIdle() && !bankService.isOpen();
     }
 

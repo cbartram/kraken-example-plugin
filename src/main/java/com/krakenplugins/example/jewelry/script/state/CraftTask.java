@@ -6,12 +6,13 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.query.widget.WidgetEntity;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
-import com.krakenplugins.example.jewelry.script.JewelryScript;
+import com.krakenplugins.example.jewelry.JewelryPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 
-import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.FURNACE_GAME_OBJECT;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
 
 @Slf4j
 public class CraftTask extends AbstractTask {
@@ -22,13 +23,13 @@ public class CraftTask extends AbstractTask {
     private JewelryConfig config;
 
     @Inject
-    private JewelryScript script;
+    private JewelryPlugin plugin;
 
     @Override
     public boolean validate() {
         // We want this task to be active even if we are currently animating,
         // so we can manage the 'wait' inside execute().
-        return ctx.players().local().isInArea(script.getEdgevilleFurnace()) &&
+        return ctx.players().local().isInArea(plugin.getEdgevilleFurnace()) &&
                 ctx.inventory().hasItem(GOLD_BAR) && ctx.inventory().hasItem(config.jewelry().getSecondaryGemId());
     }
 

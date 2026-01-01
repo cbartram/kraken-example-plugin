@@ -9,6 +9,8 @@ import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.query.gameobject.GameObjectEntity;
+import com.kraken.api.service.tile.AreaService;
+import com.kraken.api.service.tile.GameArea;
 import com.krakenplugins.example.jewelry.overlay.SceneOverlay;
 import com.krakenplugins.example.jewelry.overlay.ScriptOverlay;
 import com.krakenplugins.example.jewelry.script.JewelryScript;
@@ -16,6 +18,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.callback.ClientThread;
@@ -26,6 +29,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -63,9 +67,18 @@ public class JewelryPlugin extends Plugin {
     @Inject
     private JewelryConfig config;
 
+    @Inject
+    private AreaService areaService;
+
     @Getter
     @Setter
     private GameObjectEntity targetBankBooth;
+
+    @Getter
+    private GameArea edgevilleFurnace;
+
+    @Getter
+    private GameArea edgevilleBank;
 
     private final long startTime = System.currentTimeMillis();
 
@@ -77,6 +90,24 @@ public class JewelryPlugin extends Plugin {
     @Override
     protected void startUp() {
         ctx.initializePackets();
+
+        WorldPoint[] furnace = {
+                new WorldPoint(3105, 3502, 0),
+                new WorldPoint(3105, 3496, 0),
+                new WorldPoint(3111, 3496, 0),
+                new WorldPoint(3111, 3502, 0)
+        };
+        edgevilleFurnace = areaService.createPolygonArea(Arrays.asList(furnace));
+        WorldPoint[] bank = {
+                new WorldPoint(3091, 3500, 0),
+                new WorldPoint(3089, 3496, 0),
+                new WorldPoint(3091, 3492, 0),
+                new WorldPoint(3091, 3487, 0),
+                new WorldPoint(3099, 3487, 0),
+                new WorldPoint(3099, 3500, 0)
+        };
+        edgevilleBank = areaService.createPolygonArea(Arrays.asList(bank));
+
         jewelryScript.start();
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);

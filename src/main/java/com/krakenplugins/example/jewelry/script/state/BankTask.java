@@ -8,14 +8,14 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
-import com.krakenplugins.example.jewelry.script.JewelryScript;
+import com.krakenplugins.example.jewelry.JewelryPlugin;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import static com.krakenplugins.example.jewelry.script.JewelryScript.*;
+import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
 
 @Slf4j
 public class BankTask extends AbstractTask {
@@ -24,16 +24,16 @@ public class BankTask extends AbstractTask {
     private BankService bankService;
 
     @Inject
-    private JewelryScript script;
+    private JewelryConfig config;
 
     @Inject
-    private JewelryConfig config;
+    private JewelryPlugin plugin;
 
     private final Random random = new Random();
 
     @Override
     public boolean validate() {
-          return ctx.players().local().isIdle() && ctx.players().local().isInArea(script.getEdgevilleBank()) &&
+          return ctx.players().local().isIdle() && ctx.players().local().isInArea(plugin.getEdgevilleBank()) &&
                 !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(config.jewelry().getSecondaryGemId()) && bankService.isOpen();
     }
 
