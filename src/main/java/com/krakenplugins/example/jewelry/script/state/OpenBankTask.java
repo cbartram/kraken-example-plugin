@@ -31,7 +31,9 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(config.jewelry().getSecondaryGemId())
+        // If we don't have any gold OR any gems meaning we ran out of one or the other or both
+        // then we should bank. This handles an edge case where the player has run out of materials to craft with.
+        return (!ctx.inventory().hasItem(GOLD_BAR) || !ctx.inventory().hasItem(config.jewelry().getSecondaryGemId()))
                 && ctx.players().local().isIdle() && !bankService.isOpen();
     }
 
