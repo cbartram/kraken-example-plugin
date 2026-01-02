@@ -88,6 +88,9 @@ public class FiremakingPlugin extends Plugin {
     @Getter
     private GameObject targetFire;
 
+    @Getter
+    private int lastFiremakingXpDropTick = -1;
+
     @Provides
     FiremakingConfig provideConfig(final ConfigManager configManager) {
         return configManager.getConfig(FiremakingConfig.class);
@@ -137,9 +140,12 @@ public class FiremakingPlugin extends Plugin {
         }
     }
 
+    // TODO Doesn't work?
     @Subscribe
     private void onFakeXpDrop(FakeXpDrop event) {
+        log.info("Fake exp drop: {} -> {}", event.getSkill(), event.getXp());
         if(event.getSkill() == Skill.FIREMAKING) {
+            lastFiremakingXpDropTick = ctx.getClient().getTickCount();
             logsBurned += 1;
         }
     }

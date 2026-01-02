@@ -11,10 +11,6 @@ import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.NPCComposition;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Singleton
 public class BankTask extends AbstractTask {
@@ -30,7 +26,7 @@ public class BankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.players().local().isIdle() &&
+        return (ctx.players().local().isIdle() || ctx.players().local().raw().getAnimation() == 10572) &&
                 !bankService.isOpen() &&
                 ctx.npcs().withName("Banker").stream().findAny().isPresent() &&
                 ctx.inventory().withName(config.logName()).count() == 0;
@@ -47,15 +43,10 @@ public class BankTask extends AbstractTask {
                 ctx.getMouse().move(banker.raw());
             }
 
-
-            log.info("Opening Bank and sleeping");
             NPCComposition comp = ctx.runOnClientThread(banker.raw()::getComposition);
             if (comp == null || comp.getActions() == null) {
                 return 0;
             }
-
-            List<String> actions = Arrays.stream(comp.getActions()).collect(Collectors.toList());
-            log.info("Banker actions: {}", actions);
 
             banker.interact("Bank");
             SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);

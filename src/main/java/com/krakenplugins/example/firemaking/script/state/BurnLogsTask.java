@@ -7,6 +7,7 @@ import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.movement.MovementService;
+import com.kraken.api.service.ui.dialogue.DialogueService;
 import com.kraken.api.service.ui.processing.ProcessingService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
@@ -35,20 +36,28 @@ public class BurnLogsTask extends AbstractTask {
     @Inject
     private ProcessingService processingService;
 
+    @Inject
+    private DialogueService dialogueService;
+
     private static final int BURNING_ANIM = 10572;
 
     @Override
     public boolean validate() {
+        log.info("Has logs: {}, and tinderbox: {}", ctx.inventory().hasItem(config.logName()), ctx.inventory().hasItem(590));
         return ctx.inventory().hasItem(config.logName())
                 && ctx.inventory().hasItem(590) // 590 is Tinderbox ID
                 && !bankService.isOpen()
                 && ctx.players().local().isIdle();
     }
 
-    // Priority for this goes:
-    // If forest fire exist use that
+    // Priority for this method goes:
+    // If forest fire exists, use that
     // If normal fire exists, turn it into a foresters fire and use that
     // Light a new fire and turn it into a foresters fire.
+
+    // TODO 2 issues
+    //  - When a level up occurs players animation when doing a bonfire doesn't change and thus we get stuck in the execute() loop
+    //  - When we run out of logs we just stand there (execute shouldn't run) but does?
     @Override
     public int execute() {
         InventoryEntity tinderbox = ctx.inventory().withName("Tinderbox").first();
@@ -58,16 +67,34 @@ public class BurnLogsTask extends AbstractTask {
         GameObjectEntity fire = ctx.gameObjects().withId(26185).nearest();
         GameObjectEntity foresterFire = ctx.gameObjects().withId(49927).nearest();
 
+        // Level up continue widget: Id	15269891, text= Click here to continue, group = 233 child = 3
         // 1. Handle Animation Delays
         if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
+            if(dialogueService.isDialoguePresent()) {
+                log.info("Level up message present");
+                dialogueService.continueDialogue();
+            }
 
-            return 1200;
+            if(ctx.getClient().getTickCount() - plugin.getLastFiremakingXpDropTick() > 12) {
+                log.info("It's been more than 12 ticks since the last xp drop, restarting log burn bonfire");
+//                if (config.useMouse()) {
+//                    ctx.getMouse().move(randomLog.raw());
+//                }
+//
+//                log.info("Using logs on fire...");
+//                randomLog.useOn(fire.raw());
+//
+//                // Wait for processing interface or animation
+//                SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
+//
+//                log.info("Processing {}...", config.logName());
+//                processingService.process(config.logName());
+            }
+
+            log.info("Sleeping a tick due to bonfire animation");
+            return 600;
         }
 
-        if (ctx.players().local().raw().getAnimation() != -1) {
-            log.info("Animation gap, sleeping for 3 ticks");
-            return 1800;
-        }
 
         // Always prioritize forester fire over starting a new forester fire
         if(foresterFire != null) {
