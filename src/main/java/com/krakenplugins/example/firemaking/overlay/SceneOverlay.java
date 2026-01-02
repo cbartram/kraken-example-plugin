@@ -106,5 +106,28 @@ public class SceneOverlay extends Overlay {
                 }
             }
         }
+
+
+        java.util.List<GameObject> foresterFires = ctx.gameObjects()
+                .withId(49927)
+                .within(10).stream().map(AbstractEntity::raw).collect(Collectors.toList());
+
+        for (GameObject fire : foresterFires) {
+            if (fire != plugin.getTargetFire()) {
+                int distance = localPoint.distanceTo(fire.getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
+
+                String overlayText = String.format("Dist: %d", distance);
+                net.runelite.api.Point textLocation = fire.getCanvasTextLocation(graphics, overlayText, 0);
+
+                if (textLocation != null) {
+                    Color color = Color.MAGENTA;
+                    OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
+
+                    if (fire.getClickbox() != null) {
+                        OverlayUtil.renderPolygon(graphics, fire.getClickbox(), color);
+                    }
+                }
+            }
+        }
     }
 }

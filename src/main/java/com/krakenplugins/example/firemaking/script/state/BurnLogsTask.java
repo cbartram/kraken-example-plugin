@@ -45,16 +45,22 @@ public class BurnLogsTask extends AbstractTask {
                 && ctx.players().local().isIdle();
     }
 
+    // Priority for this goes:
+    // If forest fire exist use that
+    // If normal fire exists, turn it into a foresters fire and use that
+    // Light a new fire and turn it into a foresters fire.
     @Override
     public int execute() {
         InventoryEntity tinderbox = ctx.inventory().withName("Tinderbox").first();
         InventoryEntity randomLog = ctx.inventory().withName(config.logName()).random();
 
         // Get the nearest fire rather than a random one to prevent long runs
-        GameObjectEntity fire = ctx.gameObjects().withName("Fire").nearest();
+        GameObjectEntity fire = ctx.gameObjects().withId(26185).nearest();
+        GameObjectEntity foresterFire = ctx.gameObjects().withId(49927).nearest();
 
         // 1. Handle Animation Delays
         if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
+
             return 1200;
         }
 
@@ -63,7 +69,25 @@ public class BurnLogsTask extends AbstractTask {
             return 1800;
         }
 
-        // 2. If existing fire is present (and close), add logs to it
+        // Always prioritize forester fire over starting a new forester fire
+        if(foresterFire != null) {
+            plugin.setTargetFire(foresterFire.raw());
+            if (config.useMouse()) {
+                ctx.getMouse().move(randomLog.raw());
+            }
+
+            log.info("Using logs on existing foresters fire...");
+            randomLog.useOn(foresterFire.raw());
+
+            // Wait for processing interface or animation
+            SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
+
+            log.info("Processing {}...", config.logName());
+            processingService.process(config.logName());
+            return 600;
+        }
+
+        // 2. If existing fire is present (and close), add logs to it, turning it into a foresters fire
         if (fire != null && randomLog != null && fire.raw().getWorldLocation().distanceTo(ctx.players().local().raw().getWorldLocation()) < 10) {
             plugin.setTargetFire(fire.raw());
             if (config.useMouse()) {

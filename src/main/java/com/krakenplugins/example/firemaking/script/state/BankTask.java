@@ -33,7 +33,6 @@ public class BankTask extends AbstractTask {
         return ctx.players().local().isIdle() &&
                 !bankService.isOpen() &&
                 ctx.npcs().withName("Banker").stream().findAny().isPresent() &&
-                !ctx.players().local().isInArea(plugin.getBankLocation()) &&
                 ctx.inventory().withName(config.logName()).count() == 0;
     }
 
