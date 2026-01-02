@@ -103,10 +103,32 @@ public interface FiremakingConfig extends Config {
     String overlay = "overlay";
 
     @ConfigItem(
+            keyName = "renderBanker",
+            name = "Show Target Banker",
+            description = "Show the selected banker to interact with.",
+            position = 1,
+            section = overlay
+    )
+    default boolean showBanker() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "showFireLine",
+            name = "Show Fire Line",
+            description = "Show the selected line of tiles where fires will be constructed.",
+            position = 2,
+            section = overlay
+    )
+    default boolean showFireLine() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = "debug",
             name = "Debug",
-            description = "Show debug information and overlays.",
-            position = 1,
+            description = "Show debug information (script area checks, etc...) and overlays.",
+            position = 2,
             section = overlay
     )
     default boolean debug() {

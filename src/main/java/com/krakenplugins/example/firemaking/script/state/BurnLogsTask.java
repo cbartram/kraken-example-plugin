@@ -8,6 +8,8 @@ import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 
+import java.util.Random;
+
 public class BurnLogsTask extends AbstractTask {
 
     @Inject
@@ -15,6 +17,8 @@ public class BurnLogsTask extends AbstractTask {
 
     @Inject
     private FiremakingConfig config;
+
+    private final Random random = new Random();
 
     @Override
     public boolean validate() {
@@ -30,16 +34,21 @@ public class BurnLogsTask extends AbstractTask {
             if (config.useMouse()) {
                 ctx.getMouse().move(tinderbox.raw());
             }
-            tinderbox.interact("Use");
-            SleepService.sleep(RandomService.between(300, 600));
 
-            if (config.useMouse()) {
-                ctx.getMouse().move(logs.raw());
+            if (random.nextBoolean()) {
+                // use logs on tinderbox
+                if (config.useMouse()) {
+                    ctx.getMouse().move(logs.raw());
+                }
+                logs.useOn(tinderbox.raw());
+            } else {
+                // Use tinderbox on logs
+                if (config.useMouse()) {
+                    ctx.getMouse().move(logs.raw());
+                }
+                tinderbox.useOn(logs.raw());
             }
-            logs.useOn(tinderbox.raw());
-
-            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(2000, 3000));
-            SleepService.sleepUntil(() -> ctx.players().local().isIdle(), RandomService.between(3000, 5000));
+            SleepService.sleepUntil(() -> ctx.players().local().isIdle(), RandomService.between(2000, 4000));
         }
 
         return 600;

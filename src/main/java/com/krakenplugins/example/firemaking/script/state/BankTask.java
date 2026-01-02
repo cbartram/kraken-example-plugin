@@ -6,15 +6,17 @@ import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
+import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.krakenplugins.example.firemaking.FiremakingPlugin.BANK_LOCATION;
 
 @Slf4j
 public class BankTask extends AbstractTask {
 
     @Inject
     private BankService bankService;
+
+    @Inject
+    private FiremakingPlugin plugin;
 
     @Inject
     private FiremakingConfig config;
@@ -24,15 +26,15 @@ public class BankTask extends AbstractTask {
         return ctx.players().local().isIdle() &&
                 !bankService.isOpen() &&
                 ctx.npcs().withName("Banker").stream().findAny().isPresent() &&
-                !ctx.players().local().isInArea(BANK_LOCATION, 6) &&
+                !ctx.players().local().isInArea(plugin.getBankLocation()) &&
                 ctx.inventory().withName(config.logName()).count() == 0;
     }
 
     @Override
     public int execute() {
         NpcEntity banker = ctx.npcs().withName("Banker").nearest();
-
         if(banker != null) {
+            plugin.setTargetBanker(banker.raw());
             if(config.useMouse()) {
                 ctx.getMouse().move(banker.raw());
             }

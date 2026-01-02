@@ -8,12 +8,16 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.service.tile.AreaService;
+import com.kraken.api.service.tile.GameArea;
 import com.krakenplugins.example.firemaking.overlay.SceneOverlay;
 import com.krakenplugins.example.firemaking.overlay.ScriptOverlay;
 import com.krakenplugins.example.firemaking.script.FiremakingScript;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
+import net.runelite.api.NPC;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.FakeXpDrop;
@@ -39,8 +43,14 @@ import java.util.concurrent.TimeUnit;
 )
 public class FiremakingPlugin extends Plugin {
 
-    public static final WorldPoint BANK_LOCATION = new WorldPoint(3167, 3489, 0);
     public static final List<Integer> BANKER = List.of(1634, 3089, 1613, 1633);
+
+    private static final List<WorldPoint> INVALID_FIRE_TILES = List.of(
+
+    );
+
+    @Getter
+    private GameArea bankLocation;
 
     @Inject
     private FiremakingScript firemakingScript;
@@ -67,10 +77,17 @@ public class FiremakingPlugin extends Plugin {
     @Inject
     private FiremakingConfig config;
 
+    @Inject
+    private AreaService areaService;
+
     private final long startTime = System.currentTimeMillis();
 
     @Getter
     private int logsBurned;
+
+    @Setter
+    @Getter
+    private NPC targetBanker;
 
     @Provides
     FiremakingConfig provideConfig(final ConfigManager configManager) {
@@ -81,6 +98,7 @@ public class FiremakingPlugin extends Plugin {
     protected void startUp() {
         ctx.initializePackets();
         firemakingScript.start();
+        bankLocation = areaService.createAreaFromRadius(new WorldPoint(3164, 3490, 0), 4);
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);

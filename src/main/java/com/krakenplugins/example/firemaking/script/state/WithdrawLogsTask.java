@@ -8,9 +8,8 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
+import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.krakenplugins.example.firemaking.FiremakingPlugin.BANK_LOCATION;
 
 @Slf4j
 public class WithdrawLogsTask extends AbstractTask {
@@ -21,10 +20,13 @@ public class WithdrawLogsTask extends AbstractTask {
     @Inject
     private FiremakingConfig config;
 
+    @Inject
+    private FiremakingPlugin plugin;
+
     @Override
     public boolean validate() {
-        boolean playerInventoryEmpty = ctx.inventory().withName(config.logName()).count() == 0;
-        boolean playerInBank = ctx.players().local().isInArea(BANK_LOCATION, 6);
+        boolean playerInventoryEmpty = !ctx.inventory().hasItem(config.logName());
+        boolean playerInBank = ctx.players().local().isInArea(plugin.getBankLocation());
         return playerInventoryEmpty && bankService.isOpen() && playerInBank;
     }
 
