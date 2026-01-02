@@ -22,7 +22,7 @@ public class ScriptOverlay extends OverlayPanel {
     @Override
     public Dimension render(Graphics2D graphics) {
         panelComponent.getChildren().add(TitleComponent.builder()
-                .text("Firemaking Script")
+                .text("Auto Firemaking")
                 .color(Color.ORANGE)
                 .build());
 

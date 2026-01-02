@@ -32,6 +32,14 @@ public class WithdrawLogsTask extends AbstractTask {
     public int execute() {
         BankEntity logs = ctx.bank().withName(config.logName()).first();
 
+        if(!ctx.inventory().hasItem(590)) {
+            log.info("Withdrawing Tinderbox");
+            BankEntity tinderbox = ctx.bank().withName("Tinderbox").first();
+            if(tinderbox != null) {
+                tinderbox.withdrawOne();
+            }
+        }
+
         if(logs != null) {
             if(config.useMouse()) {
                 ctx.getMouse().move(logs.raw());
@@ -41,7 +49,6 @@ public class WithdrawLogsTask extends AbstractTask {
             SleepService.sleepUntil(() -> ctx.inventory().isFull(), 3000);
         } else {
             log.info("No logs found in bank");
-            // Stop script or handle error
         }
 
         if(config.useMouse()) {

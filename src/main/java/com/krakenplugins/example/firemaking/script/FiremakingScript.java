@@ -3,10 +3,7 @@ package com.krakenplugins.example.firemaking.script;
 import com.google.inject.Inject;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
-import com.krakenplugins.example.firemaking.script.state.BankTask;
-import com.krakenplugins.example.firemaking.script.state.BurnLogsTask;
-import com.krakenplugins.example.firemaking.script.state.FindPathTask;
-import com.krakenplugins.example.firemaking.script.state.WithdrawLogsTask;
+import com.krakenplugins.example.firemaking.script.state.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,8 +18,9 @@ public class FiremakingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public FiremakingScript(BankTask bankTask, WithdrawLogsTask withdrawLogsTask, FindPathTask findPathTask, BurnLogsTask burnLogsTask) {
+    public FiremakingScript(EnterBankPinTask pin, BankTask bankTask, WithdrawLogsTask withdrawLogsTask, FindPathTask findPathTask, BurnLogsTask burnLogsTask) {
         this.tasks = List.of(
+                pin,
                 bankTask,
                 withdrawLogsTask,
                 findPathTask,

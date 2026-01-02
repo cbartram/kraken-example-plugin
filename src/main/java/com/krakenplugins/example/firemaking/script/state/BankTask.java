@@ -2,13 +2,12 @@ package com.krakenplugins.example.firemaking.script.state;
 
 import com.google.inject.Inject;
 import com.kraken.api.core.script.AbstractTask;
-import com.kraken.api.query.gameobject.GameObjectEntity;
+import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.krakenplugins.example.firemaking.FiremakingPlugin.BANK_BOOTH_GAME_OBJECT;
 import static com.krakenplugins.example.firemaking.FiremakingPlugin.BANK_LOCATION;
 
 @Slf4j
@@ -24,22 +23,23 @@ public class BankTask extends AbstractTask {
     public boolean validate() {
         return ctx.players().local().isIdle() &&
                 !bankService.isOpen() &&
-                ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() &&
-                !ctx.players().local().isInArea(BANK_LOCATION, 3) &&
+                ctx.npcs().withName("Banker").stream().findAny().isPresent() &&
+                !ctx.players().local().isInArea(BANK_LOCATION, 6) &&
                 ctx.inventory().withName(config.logName()).count() == 0;
     }
 
     @Override
     public int execute() {
-        GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
+        NpcEntity banker = ctx.npcs().withName("Banker").nearest();
 
-        if(bankBooth != null) {
+        if(banker != null) {
             if(config.useMouse()) {
-                ctx.getMouse().move(bankBooth.raw());
+                ctx.getMouse().move(banker.raw());
             }
-            bankBooth.interact("Bank");
+
+            banker.interact("Bank");
             log.info("Opening Bank and sleeping");
-            SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
+            SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);
         }
 
         return 1200;

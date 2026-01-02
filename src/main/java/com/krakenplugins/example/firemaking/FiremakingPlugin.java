@@ -26,6 +26,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -39,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 public class FiremakingPlugin extends Plugin {
 
     public static final WorldPoint BANK_LOCATION = new WorldPoint(3167, 3489, 0);
-    public static final int BANK_BOOTH_GAME_OBJECT = 10355;
+    public static final List<Integer> BANKER = List.of(1634, 3089, 1613, 1633);
 
     @Inject
     private FiremakingScript firemakingScript;
