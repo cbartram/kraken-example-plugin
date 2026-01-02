@@ -45,7 +45,7 @@ public class BankTask extends AbstractTask {
             plugin.setTargetTree(null);
             bankBooth.interact("Bank");
             log.info("Opening Bank and sleeping");
-            SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
+            SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);
         }
 
         return 1200;

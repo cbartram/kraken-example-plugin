@@ -7,6 +7,7 @@ import com.kraken.api.core.script.Task;
 import com.krakenplugins.example.woodcutting.script.state.BankTask;
 import com.krakenplugins.example.woodcutting.script.state.ChopLogsTask;
 import com.krakenplugins.example.woodcutting.script.state.DepositLogsTask;
+import com.krakenplugins.example.woodcutting.script.state.EnterBankPinTask;
 import com.krakenplugins.example.woodcutting.script.state.WalkToTrees;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,9 @@ public class WoodcuttingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public WoodcuttingScript(BankTask bankTask, ChopLogsTask chopLogsTask, DepositLogsTask depositLogsTask, WalkToTrees walkToTrees) {
+    public WoodcuttingScript(BankTask bankTask, ChopLogsTask chopLogsTask, DepositLogsTask depositLogsTask, WalkToTrees walkToTrees, EnterBankPinTask enterBankPinTask) {
         this.tasks = List.of(
+                enterBankPinTask,
                 chopLogsTask,
                 bankTask,
                 walkToTrees,

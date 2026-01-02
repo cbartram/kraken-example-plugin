@@ -8,6 +8,25 @@ import net.runelite.client.config.*;
 public interface WoodcuttingConfig extends Config {
 
 	@ConfigSection(
+			name = "Bank",
+			description = "Options for configuring banking",
+			position = -1
+	)
+	String bank = "bank";
+
+	@ConfigItem(
+			keyName = "bankPin",
+			name = "Bank Pin",
+			description = "When this field is not blank, it will enter the bank pin automatically for you. <br>" +
+					"This should be a 4 digit number.",
+			position = 1,
+			section = bank
+	)
+	default String bankPin() {
+		return "";
+	}
+
+	@ConfigSection(
 			name = "Mouse",
 			description = "Options for configuring mouse movements",
 			position = 1
