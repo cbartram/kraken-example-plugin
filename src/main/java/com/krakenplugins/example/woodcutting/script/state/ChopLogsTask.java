@@ -42,7 +42,7 @@ public class ChopLogsTask extends AbstractTask {
         // Check if we recently finished dropping (e.g., within 4 seconds)
         // If so, we are "Active" and should click immediately, bypassing the idle simulation.
         long timeSinceDrop = System.currentTimeMillis() - plugin.getLastDropTimestamp();
-        boolean isActivePlayer = timeSinceDrop < 4000;
+        boolean isActivePlayer = timeSinceDrop < 4000 || ctx.inventory().nameContains("logs").count() == 0;
 
         if (!isActivePlayer) {
             // Calculate a chance to click this tick based on how long we've been waiting.
@@ -84,7 +84,7 @@ public class ChopLogsTask extends AbstractTask {
     @Override
     public String status() {
         if (idleTicks > 0) {
-            return "Idling (Reaction Delay)";
+            return "Chopping (Reaction Delay)";
         }
         return "Chopping " + config.treeName();
     }
