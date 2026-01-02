@@ -1,6 +1,7 @@
 package com.krakenplugins.example.firemaking.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.container.bank.BankEntity;
 import com.kraken.api.query.widget.WidgetEntity;
@@ -12,6 +13,7 @@ import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Singleton
 public class WithdrawLogsTask extends AbstractTask {
 
     @Inject

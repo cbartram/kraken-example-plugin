@@ -1,6 +1,7 @@
 package com.krakenplugins.example.firemaking.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.npc.NpcEntity;
 import com.kraken.api.service.bank.BankService;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Singleton
 public class BankTask extends AbstractTask {
 
     @Inject
@@ -40,6 +42,8 @@ public class BankTask extends AbstractTask {
         NpcEntity banker = ctx.npcs().withName("Banker").nearest();
         if(banker != null) {
             plugin.setTargetBanker(banker.raw());
+            plugin.setTargetFire(null);
+
             if(config.useMouse()) {
                 ctx.getMouse().move(banker.raw());
             }

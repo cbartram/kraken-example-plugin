@@ -114,13 +114,13 @@ public interface FiremakingConfig extends Config {
     }
 
     @ConfigItem(
-            keyName = "showFireLine",
-            name = "Show Fire Line",
-            description = "Show the selected line of tiles where fires will be constructed.",
+            keyName = "showTargetFire",
+            name = "Show Target Fire",
+            description = "Highlight the selected fire for the bonfire.",
             position = 2,
             section = overlay
     )
-    default boolean showFireLine() {
+    default boolean showTargetFire() {
         return false;
     }
 

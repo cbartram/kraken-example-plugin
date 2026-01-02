@@ -16,6 +16,7 @@ import com.krakenplugins.example.firemaking.script.FiremakingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.NPC;
 import net.runelite.api.Skill;
@@ -42,12 +43,6 @@ import java.util.concurrent.TimeUnit;
         tags = {"example", "automation", "kraken", "firemaking"}
 )
 public class FiremakingPlugin extends Plugin {
-
-    public static final List<Integer> BANKER = List.of(1634, 3089, 1613, 1633);
-
-    private static final List<WorldPoint> INVALID_FIRE_TILES = List.of(
-
-    );
 
     @Getter
     private GameArea bankLocation;
@@ -89,6 +84,10 @@ public class FiremakingPlugin extends Plugin {
     @Getter
     private NPC targetBanker;
 
+    @Setter
+    @Getter
+    private GameObject targetFire;
+
     @Provides
     FiremakingConfig provideConfig(final ConfigManager configManager) {
         return configManager.getConfig(FiremakingConfig.class);
@@ -98,7 +97,13 @@ public class FiremakingPlugin extends Plugin {
     protected void startUp() {
         ctx.initializePackets();
         firemakingScript.start();
-        bankLocation = areaService.createAreaFromRadius(new WorldPoint(3164, 3490, 0), 4);
+        bankLocation = areaService.createPolygonArea(List.of(
+            new WorldPoint(3167, 3493, 0),
+            new WorldPoint(3161, 3493, 0),
+            new WorldPoint(3161, 3486, 0),
+            new WorldPoint(3168, 3486, 0),
+            new WorldPoint(3168, 3493, 0)
+        ));
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);

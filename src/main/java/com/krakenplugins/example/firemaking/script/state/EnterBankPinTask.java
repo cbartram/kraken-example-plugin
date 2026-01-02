@@ -1,6 +1,7 @@
 package com.krakenplugins.example.firemaking.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
@@ -8,6 +9,7 @@ import com.krakenplugins.example.firemaking.FiremakingConfig;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Singleton
 public class EnterBankPinTask extends AbstractTask {
 
     @Inject

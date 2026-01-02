@@ -18,12 +18,11 @@ public class FiremakingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public FiremakingScript(EnterBankPinTask pin, BankTask bankTask, WithdrawLogsTask withdrawLogsTask, FindPathTask findPathTask, BurnLogsTask burnLogsTask) {
+    public FiremakingScript(EnterBankPinTask pin, BankTask bankTask, WithdrawLogsTask withdrawLogsTask, BurnLogsTask burnLogsTask) {
         this.tasks = List.of(
                 pin,
                 bankTask,
                 withdrawLogsTask,
-                findPathTask,
                 burnLogsTask
         );
     }
