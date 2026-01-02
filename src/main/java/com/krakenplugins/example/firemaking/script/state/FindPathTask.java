@@ -5,9 +5,13 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class FindPathTask extends AbstractTask {
 
@@ -19,74 +23,102 @@ public class FindPathTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.inventory().isFull() && ctx.players().local().isIdle() && !isCurrentPositionGood();
+        // Run if inventory is full of logs
+        // OR we have logs but cannot burn in the current position (West blocked)
+        boolean hasLogs = !ctx.inventory().withName(config.logName()).isEmpty();
+        return hasLogs && ctx.players().local().isIdle() && !canBurnWest();
     }
 
     @Override
     public int execute() {
         WorldPoint bestSpot = findBestSpot();
         if (bestSpot != null) {
-             if (config.useMouse()) {
-                 movementService.moveTo(bestSpot);
-             }
-             SleepService.sleepUntil(() -> ctx.players().local().raw().getWorldLocation().equals(bestSpot), 8000);
+            if (config.useMouse()) {
+                ctx.getMouse().move(bestSpot);
+            }
+            movementService.moveTo(bestSpot);
+
+            SleepService.sleepUntil(() ->
+                    ctx.players().local().raw().getWorldLocation().distanceTo(bestSpot) <= 1, 8000);
         }
-        return 1000;
+        return 600;
     }
 
-    private boolean isCurrentPositionGood() {
-        // Check if we can burn logs to the West
-        // We need as many tiles as we have logs
-        long logsCount = ctx.inventory().withName(config.logName()).count();
-        return checkLine(ctx.players().local().raw().getWorldLocation(), -1, 0) >= logsCount;
+    /**
+     * Checks if the IMMEDIATE tile to the West is valid.
+     * If this returns false, the Task validates true, prompting a move.
+     */
+    private boolean canBurnWest() {
+        WorldPoint current = ctx.players().local().raw().getWorldLocation();
+        // Check current tile for fire (cannot light fire on fire)
+        if (isTileBlockedOrHasFire(current)) return false;
+
+        // Check immediate west tile
+        return !isTileBlockedOrHasFire(current.dx(-1));
     }
 
-    private WorldPoint findBestSpot() {
+    public WorldPoint findBestSpot() {
         WorldPoint center = ctx.players().local().raw().getWorldLocation();
-        WorldPoint best = null;
-        int maxLen = -1;
-        long logsCount = ctx.inventory().withName(config.logName()).count();
+        List<FireLine> validLines = new ArrayList<>();
+        int searchRadius = 15;
 
-        // Search radius 15
-        for (int x = -15; x <= 15; x++) {
-            for (int y = -15; y <= 15; y++) {
+        for (int y = -searchRadius; y <= searchRadius; y++) {
+            int currentStripLength = 0;
+            WorldPoint stripStart = null;
+
+            // Iterate West to East (or East to West) across the row
+            // We scan a bit wider (20) to find full lines
+            for (int x = 20; x >= -20; x--) {
                 WorldPoint p = center.dx(x).dy(y);
-                if (ctx.getTileService().isTileReachable(p)) {
-                     int len = checkLine(p, -1, 0);
-                     if (len >= logsCount) {
-                         return p; // Found a good enough spot
-                     }
-                     if (len > maxLen) {
-                         maxLen = len;
-                         best = p;
-                     }
+
+                // If tile is free of obstacles and fires
+                if (!isTileBlockedOrHasFire(p)) {
+                    if (currentStripLength == 0) {
+                        stripStart = p;
+                    }
+                    currentStripLength++;
+                } else {
+                    // Strip ended (hit a wall or fire)
+                    if (currentStripLength > 0) {
+                        // Create a line starting at the Eastern-most point of the strip
+                        // Because we burn West, the start point is the generic 'stripStart'
+                        validLines.add(new FireLine(stripStart, currentStripLength, center.distanceTo(stripStart)));
+                    }
+                    currentStripLength = 0;
+                    stripStart = null;
                 }
             }
         }
-        return best;
+
+        // 2. Sort lines: Prefer Longest lines, then Closest lines
+        // We only care if the line is at least 3 tiles long to be worth moving
+        return validLines.stream()
+                .filter(line -> line.length >= 3)
+                .sorted(Comparator.comparingInt(FireLine::getLength).reversed()
+                        .thenComparingInt(FireLine::getDistance))
+                .filter(line -> ctx.getTileService().isTileReachable(line.start)) // Expensive check happens LAST on few candidates
+                .map(FireLine::getStart)
+                .findFirst()
+                .orElse(null);
     }
 
-    private int checkLine(WorldPoint start, int dx, int dy) {
-        int length = 0;
-        WorldPoint current = start;
-        // Check up to 28 tiles
-        for (int i = 0; i < 28; i++) {
-            WorldPoint next = current.dx(dx).dy(dy);
-            Map<WorldPoint, Integer> reachable = ctx.getTileService().getReachableTilesFromTile(current, 1, false);
-            
-            // Check if next is reachable and no fire
-            if (reachable.containsKey(next) && ctx.gameObjects().at(next).withName("Fire").first() == null) {
-                length++;
-                current = next;
-            } else {
-                break;
-            }
-        }
-        return length;
+    @Getter
+    @AllArgsConstructor
+    private static class FireLine {
+        WorldPoint start;
+        int length;
+        int distance;
+    }
+
+    private boolean isTileBlockedOrHasFire(WorldPoint p) {
+        boolean hasFire = ctx.gameObjects().at(p).withName("Fire").first() != null;
+        if (hasFire) return true;
+
+        return !ctx.getTileService().isTileReachable(p);
     }
 
     @Override
     public String status() {
-        return "Finding Path";
+        return "Finding new Fire Line";
     }
 }

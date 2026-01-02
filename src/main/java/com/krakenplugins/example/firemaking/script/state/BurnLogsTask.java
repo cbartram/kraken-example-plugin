@@ -6,14 +6,10 @@ import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
-import com.krakenplugins.example.firemaking.FiremakingPlugin;
 
 import java.util.Random;
 
 public class BurnLogsTask extends AbstractTask {
-
-    @Inject
-    private FiremakingPlugin plugin;
 
     @Inject
     private FiremakingConfig config;

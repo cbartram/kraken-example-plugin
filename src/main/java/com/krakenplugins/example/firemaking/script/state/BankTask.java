@@ -8,6 +8,11 @@ import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.NPCComposition;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class BankTask extends AbstractTask {
@@ -39,8 +44,17 @@ public class BankTask extends AbstractTask {
                 ctx.getMouse().move(banker.raw());
             }
 
-            banker.interact("Bank");
+
             log.info("Opening Bank and sleeping");
+            NPCComposition comp = ctx.runOnClientThread(banker.raw()::getComposition);
+            if (comp == null || comp.getActions() == null) {
+                return 0;
+            }
+
+            List<String> actions = Arrays.stream(comp.getActions()).collect(Collectors.toList());
+            log.info("Banker actions: {}", actions);
+
+            banker.interact("Bank");
             SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);
         }
 

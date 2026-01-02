@@ -42,6 +42,10 @@ public class WithdrawLogsTask extends AbstractTask {
             }
         }
 
+        if(plugin.getTargetBanker() != null) {
+            plugin.setTargetBanker(null);
+        }
+
         if(logs != null) {
             if(config.useMouse()) {
                 ctx.getMouse().move(logs.raw());
