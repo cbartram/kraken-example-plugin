@@ -67,7 +67,6 @@ public class BurnLogsTask extends AbstractTask {
         GameObjectEntity fire = ctx.gameObjects().withId(26185).nearest();
         GameObjectEntity foresterFire = ctx.gameObjects().withId(49927).nearest();
 
-        // Level up continue widget: Id	15269891, text= Click here to continue, group = 233 child = 3
         // 1. Handle Animation Delays
         if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
             if(dialogueService.isDialoguePresent()) {
