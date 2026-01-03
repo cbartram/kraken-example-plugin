@@ -44,14 +44,15 @@ in their respective README's linked below.
 - [Woodcutting Plugin](docs/WOODCUTTING.md)
 - [Fishing Plugin](docs/FISHING.md)
 - [Jewelry Plugin](docs/JEWELRY.md)
+- [Firemaking Plugin](docs/FIREMAKING.md)
 
 # QuickStart
 
-To set up your development environment we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
+To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 You must add `-ea` to your VM args to enable assertions and add `--developer-mode` and `com.krakenplugins.example.<package>.<class>`
-as arguments when you run the JAR. See example below.
+as arguments when you run the JAR. See the example below.
 
-Once you have the example plugin cloned and setup within Intellij run plugins with:
+Once you have the example plugin cloned and setup within Intellij, run plugins with:
 
 ```shell
 export GITHUB_ACTOR=<github-username>
@@ -78,7 +79,7 @@ as part of your RuneLite plugin's build process.
 * [Java](https://www.java.org/) — Core language
 * [Gradle](https://gradle.org/) — Build tool
 * [RuneLite](https://runelite.net) — Used for as the backbone for the API
-* [Kraken API](https://github.com/cbartram/kraken-api) - Interaction API
+* [Kraken API](https://github.com/cbartram/kraken-api) – Interaction API
 
 ---
 
