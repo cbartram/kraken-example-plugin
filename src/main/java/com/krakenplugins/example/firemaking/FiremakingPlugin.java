@@ -86,6 +86,7 @@ public class FiremakingPlugin extends Plugin {
     @Getter
     private GameObject targetFire;
 
+    @Setter
     @Getter
     private int lastFiremakingXpDropTick = -1;
 
@@ -142,7 +143,6 @@ public class FiremakingPlugin extends Plugin {
     @Subscribe
     private void onStatChanged(StatChanged e) {
         if(e.getSkill() == Skill.FIREMAKING) {
-            log.info("Logs burned on tick: {}", ctx.getClient().getTickCount());
             logsBurned += 1;
             lastFiremakingXpDropTick = ctx.getClient().getTickCount();
         }

@@ -63,7 +63,6 @@ public class BurnLogsTask extends AbstractTask {
         GameObjectEntity fire = ctx.gameObjects().withId(26185).nearest();
         GameObjectEntity foresterFire = ctx.gameObjects().withId(49927).nearest();
 
-        // 1. Handle Animation Delays
         if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
             if(dialogueService.isDialoguePresent()) {
                 dialogueService.continueDialogue();
@@ -71,15 +70,11 @@ public class BurnLogsTask extends AbstractTask {
 
             if(ctx.getClient().getTickCount() - plugin.getLastFiremakingXpDropTick() > TICK_THRESHOLD && plugin.getLastFiremakingXpDropTick() != -1) {
                 log.info("Threshold since last burn reached, restarting log burn bonfire");
-                if (config.useMouse()) {
-                    ctx.getMouse().move(randomLog.raw());
+                if(foresterFire != null && randomLog != null) {
+                    startBonfire(foresterFire, randomLog);
+                } else if(fire != null && randomLog != null) {
+                    startBonfire(fire, randomLog);
                 }
-
-                randomLog.useOn(fire.raw());
-
-                // Wait for processing interface or animation
-                SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
-                processingService.process(config.logName());
             }
 
             return 600;
@@ -88,34 +83,14 @@ public class BurnLogsTask extends AbstractTask {
 
         // Always prioritize forester fire over starting a new forester fire
         if(foresterFire != null) {
-            plugin.setTargetFire(foresterFire.raw());
-            if (config.useMouse()) {
-                ctx.getMouse().move(randomLog.raw());
-            }
-
-            randomLog.useOn(foresterFire.raw());
-
-            // Wait for processing interface or animation
-            SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
-
-            processingService.process(config.logName());
+            startBonfire(foresterFire, randomLog);
             SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == BURNING_ANIM, RandomService.between(2000, 4000));
             return 600;
         }
 
         // If existing fire is present (and close), add logs to it, turning it into a foresters fire
-        if (fire != null && randomLog != null && fire.raw().getWorldLocation().distanceTo(ctx.players().local().raw().getWorldLocation()) < 10) {
-            plugin.setTargetFire(fire.raw());
-            if (config.useMouse()) {
-                ctx.getMouse().move(randomLog.raw());
-            }
-
-            randomLog.useOn(fire.raw());
-
-            // Wait for processing interface or animation
-            SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
-
-            processingService.process(config.logName());
+        if (fire != null && randomLog != null && fire.raw().getWorldLocation().distanceTo(ctx.players().local().raw().getWorldLocation()) < 5) {
+            startBonfire(fire, randomLog);
             return 600;
         }
 
@@ -149,6 +124,19 @@ public class BurnLogsTask extends AbstractTask {
         }
 
         return 600;
+    }
+
+    private void startBonfire(GameObjectEntity fire, InventoryEntity log) {
+        plugin.setTargetFire(fire.raw());
+        if (config.useMouse()) {
+            ctx.getMouse().move(log.raw());
+       }
+
+        log.useOn(fire.raw());
+
+        SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
+        processingService.process(config.logName());
+        plugin.setLastFiremakingXpDropTick(ctx.getClient().getTickCount() + 5); // Buffer so this doesn't continually execute
     }
 
     /**
