@@ -40,24 +40,20 @@ public class BurnLogsTask extends AbstractTask {
     private DialogueService dialogueService;
 
     private static final int BURNING_ANIM = 10572;
+    private static final int TICK_THRESHOLD = 16;
 
     @Override
     public boolean validate() {
-        log.info("Has logs: {}, and tinderbox: {}", ctx.inventory().hasItem(config.logName()), ctx.inventory().hasItem(590));
         return ctx.inventory().hasItem(config.logName())
                 && ctx.inventory().hasItem(590) // 590 is Tinderbox ID
                 && !bankService.isOpen()
-                && ctx.players().local().isIdle();
+                && (ctx.players().local().isIdle() || ctx.players().local().raw().getAnimation() == BURNING_ANIM);
     }
 
     // Priority for this method goes:
     // If forest fire exists, use that
     // If normal fire exists, turn it into a foresters fire and use that
     // Light a new fire and turn it into a foresters fire.
-
-    // TODO 2 issues
-    //  - When a level up occurs players animation when doing a bonfire doesn't change and thus we get stuck in the execute() loop
-    //  - When we run out of logs we just stand there (execute shouldn't run) but does?
     @Override
     public int execute() {
         InventoryEntity tinderbox = ctx.inventory().withName("Tinderbox").first();
@@ -70,27 +66,22 @@ public class BurnLogsTask extends AbstractTask {
         // 1. Handle Animation Delays
         if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
             if(dialogueService.isDialoguePresent()) {
-                log.info("Level up message present");
                 dialogueService.continueDialogue();
             }
 
-            if(ctx.getClient().getTickCount() - plugin.getLastFiremakingXpDropTick() > 12) {
-                log.info("It's been more than 12 ticks since the last xp drop, restarting log burn bonfire");
-//                if (config.useMouse()) {
-//                    ctx.getMouse().move(randomLog.raw());
-//                }
-//
-//                log.info("Using logs on fire...");
-//                randomLog.useOn(fire.raw());
-//
-//                // Wait for processing interface or animation
-//                SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
-//
-//                log.info("Processing {}...", config.logName());
-//                processingService.process(config.logName());
+            if(ctx.getClient().getTickCount() - plugin.getLastFiremakingXpDropTick() > TICK_THRESHOLD && plugin.getLastFiremakingXpDropTick() != -1) {
+                log.info("Threshold since last burn reached, restarting log burn bonfire");
+                if (config.useMouse()) {
+                    ctx.getMouse().move(randomLog.raw());
+                }
+
+                randomLog.useOn(fire.raw());
+
+                // Wait for processing interface or animation
+                SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
+                processingService.process(config.logName());
             }
 
-            log.info("Sleeping a tick due to bonfire animation");
             return 600;
         }
 
@@ -102,31 +93,28 @@ public class BurnLogsTask extends AbstractTask {
                 ctx.getMouse().move(randomLog.raw());
             }
 
-            log.info("Using logs on existing foresters fire...");
             randomLog.useOn(foresterFire.raw());
 
             // Wait for processing interface or animation
             SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
 
-            log.info("Processing {}...", config.logName());
             processingService.process(config.logName());
+            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == BURNING_ANIM, RandomService.between(2000, 4000));
             return 600;
         }
 
-        // 2. If existing fire is present (and close), add logs to it, turning it into a foresters fire
+        // If existing fire is present (and close), add logs to it, turning it into a foresters fire
         if (fire != null && randomLog != null && fire.raw().getWorldLocation().distanceTo(ctx.players().local().raw().getWorldLocation()) < 10) {
             plugin.setTargetFire(fire.raw());
             if (config.useMouse()) {
                 ctx.getMouse().move(randomLog.raw());
             }
 
-            log.info("Using logs on fire...");
             randomLog.useOn(fire.raw());
 
             // Wait for processing interface or animation
             SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
 
-            log.info("Processing {}...", config.logName());
             processingService.process(config.logName());
             return 600;
         }
@@ -143,7 +131,6 @@ public class BurnLogsTask extends AbstractTask {
 
             WorldPoint targetSpot = findSafeSpot(bankTiles);
             if (targetSpot != null) {
-                log.info("Walking to safe firemaking spot: {}", targetSpot);
                 ctx.getService(MovementService.class).moveTo(targetSpot);
                 SleepService.sleepUntil(() -> ctx.players().local().isMoving(), 1200);
                 return 1200;
@@ -153,15 +140,12 @@ public class BurnLogsTask extends AbstractTask {
             }
         }
 
-        // 4. Light fire
         // We are now outside the bank, and no valid fire exists nearby.
         if (tinderbox != null && randomLog != null) {
-            log.info("Lighting new fire...");
             tinderbox.useOn(randomLog.raw());
 
             // Wait for the animation to start so we don't spam click
             SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(1200, 1800));
-            return 600;
         }
 
         return 600;

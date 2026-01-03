@@ -21,8 +21,8 @@ import net.runelite.api.GameState;
 import net.runelite.api.NPC;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.StatChanged;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -75,8 +75,6 @@ public class FiremakingPlugin extends Plugin {
     @Inject
     private AreaService areaService;
 
-    private final long startTime = System.currentTimeMillis();
-
     @Getter
     private int logsBurned;
 
@@ -90,6 +88,8 @@ public class FiremakingPlugin extends Plugin {
 
     @Getter
     private int lastFiremakingXpDropTick = -1;
+
+    private final long startTime = System.currentTimeMillis();
 
     @Provides
     FiremakingConfig provideConfig(final ConfigManager configManager) {
@@ -136,17 +136,15 @@ public class FiremakingPlugin extends Plugin {
                     linear.setSteps(config.linearSteps());
                 }
             }
-
         }
     }
 
-    // TODO Doesn't work?
     @Subscribe
-    private void onFakeXpDrop(FakeXpDrop event) {
-        log.info("Fake exp drop: {} -> {}", event.getSkill(), event.getXp());
-        if(event.getSkill() == Skill.FIREMAKING) {
-            lastFiremakingXpDropTick = ctx.getClient().getTickCount();
+    private void onStatChanged(StatChanged e) {
+        if(e.getSkill() == Skill.FIREMAKING) {
+            log.info("Logs burned on tick: {}", ctx.getClient().getTickCount());
             logsBurned += 1;
+            lastFiremakingXpDropTick = ctx.getClient().getTickCount();
         }
     }
 
