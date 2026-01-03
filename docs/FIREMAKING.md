@@ -1,7 +1,6 @@
 # Firemaking Plugin
 
-The Firemaking Plugin is an example automation script built using the Kraken API. 
-It automates the process of burning logs to level up the Firemaking skill, specifically focusing on the usage of bonfires for efficiency.
+The Firemaking Plugin is an example automation script built using the Kraken API. It automates the process of burning logs to level up the Firemaking skill, specifically focusing on the usage of bonfires for efficiency.
 
 ## Features
 - Automates firemaking at the Grand Exchange.
@@ -33,14 +32,19 @@ java -jar ./build/libs/kraken-example-plugin-1.0.0.jar --developer-mode com.krak
 ## Configuration
 The plugin offers several configuration options to customize its behavior.
 
+### Bank Settings
+* **Bank Pin**: If your account has a bank pin, you can enter it here (4 digits) to have the script automatically enter it for you.
+
 ### Mouse Settings
+* **Use Mouse Movement**: Toggles whether the mouse cursor physically moves on the canvas.
 * **Movement Strategy**: Determines how the mouse moves. Options include `BEZIER` (default), `LINEAR`, etc.
 * **Replay Library**: If `REPLAY` strategy is chosen, this defines which library to load.
 * **Linear Steps**: If `LINEAR` strategy is chosen, this sets the number of steps (points) along the path (5-3000).
 
-### Firemaking Settings
-* **Log Type**: Configures the type of logs the script should withdraw and burn (e.g., "Logs", "Oak logs", "Willow logs").
+### Log Settings
+* **Log Name**: Configures the name of the logs the script should withdraw and burn (e.g., "Logs", "Oak logs", "Willow logs").
 
 ### Overlays
-* **Status Overlay**: Displays the current state of the script (e.g., Banking, Lighting Fire, Adding to Bonfire).
-* **Debug Overlays**: Visualizes game objects and interaction points for debugging purposes.
+* **Show Target Banker**: Highlights the banker NPC the script is currently interacting with.
+* **Show Target Fire**: Highlights the fire object the script is targeting for bonfire use.
+* **Debug**: Enables additional debug information, such as script area checks and other technical overlays.
