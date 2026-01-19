@@ -1,9 +1,12 @@
-package com.krakenpluging.example.firemaking.script;
+package com.krakenplugins.example.firemaking.script;
 
 import com.google.inject.Inject;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
-import com.krakenpluging.example.firemaking.script.state.*;
+import com.krakenplugins.example.firemaking.script.state.BankTask;
+import com.krakenplugins.example.firemaking.script.state.BurnLogsTask;
+import com.krakenplugins.example.firemaking.script.state.EnterBankPinTask;
+import com.krakenplugins.example.firemaking.script.state.WithdrawLogsTask;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

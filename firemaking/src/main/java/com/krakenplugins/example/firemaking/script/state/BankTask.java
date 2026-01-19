@@ -1,4 +1,4 @@
-package com.krakenpluging.example.firemaking.script.state;
+package com.krakenplugins.example.firemaking.script.state;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;

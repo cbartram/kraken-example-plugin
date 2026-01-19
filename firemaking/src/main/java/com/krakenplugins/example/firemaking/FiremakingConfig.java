@@ -1,4 +1,4 @@
-package com.krakenpluging.example.firemaking;
+package com.krakenplugins.example.firemaking;
 
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import net.runelite.client.config.*;
