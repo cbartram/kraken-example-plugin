@@ -1,4 +1,4 @@
-package com.krakenplugins.example.firemaking.overlay;
+package com.krakenpluging.example.firemaking.overlay;
 
 import com.google.inject.Inject;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;

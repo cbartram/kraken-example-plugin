@@ -1,45 +1,105 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
 plugins {
     id 'java'
 }
 
-def runeLiteVersion = 'latest.release'
-def krakenApiVersion = '2.1.21'
+def runeLiteVersion = '1.12.12.1' // latest.release
+def krakenApiVersion = '2.1.23'
 
-group = 'com.krakenplugins'
-version = '1.0.0'
+allprojects {
+    apply plugin: 'java'
 
-repositories {
-    maven {
-        url = 'https://repo.runelite.net'
-    }
-    mavenCentral()
-    // You must declare this maven repository to be able to search and pull Kraken API packages
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+    ext.runeLiteVersion = runeLiteVersion
+    ext.krakenApiVersion = krakenApiVersion
+
+    repositories {
+        maven {
+            url = 'https://repo.runelite.net'
+            content {
+                excludeGroupByRegex "com\\.github.cbartram.*"
+            }
         }
+        mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+
+        maven {
+            url 'https://jitpack.io'
+            content {
+                includeGroup "com.github.cbartram"
+            }
+        }
+        flatDir {
+            dirs 'libs'
+        }
+        mavenLocal()
     }
-    maven { url 'https://jitpack.io' }
-    mavenLocal()
+
+    group = 'com.krakenplugins'
+
+    // Create a directory for collecting all JARs
+    ext.jarsDir = layout.buildDirectory.dir('plugins')
 }
 
+
 dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+subprojects {
     dependencies {
-        implementation group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+        compileOnly group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
         compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
         compileOnly 'org.projectlombok:lombok:1.18.30'
         annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-        testImplementation 'junit:junit:4.12'
         testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
-        testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+        testImplementation group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release.set(11)
+    }
+
+    tasks.register('simpleJar', Jar) {
+        dependsOn jar
+        manifest {
+            attributes(
+                    'Main-Class': "com.krakenplugins.${project.name.capitalize()}Plugin",
+                    'Multi-Release': true
+            )
+        }
+
+        from sourceSets.main.output
+        archiveClassifier.set('simple')
+        archiveFileName.set("${project.name}-${project.version}.jar")
+    }
+
+    tasks.register('copySimpleJar', Copy) {
+        from simpleJar
+        into rootProject.jarsDir
+        dependsOn simpleJar, jar
     }
 }
 
-test {
-    useJUnitPlatform()
-    exclude 'com/krakenplugins/example/ExamplePluginTest.class'
+tasks.register('buildAndCollectSimpleJars') {
+    dependsOn subprojects.copySimpleJar
+    description = 'Builds simple JARs for all sub-projects and copies them to build/jars'
+
+    doLast {
+        println "All simple JARs have been built and copied to ${jarsDir.get()}"
+    }
 }

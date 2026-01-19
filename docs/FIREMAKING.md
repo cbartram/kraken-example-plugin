@@ -26,7 +26,7 @@ To run the firemaking plugin, use the following commands in your terminal:
 ```shell
 ./gradlew build
 
-java -jar ./build/libs/kraken-example-plugin-1.0.0.jar --developer-mode com.krakenplugins.example.firemaking.FiremakingPlugin
+java -jar ./build/libs/kraken-example-plugin-1.0.0.jar --developer-mode com.krakenpluging.example.firemaking.FiremakingPlugin
 ```
 
 ## Configuration

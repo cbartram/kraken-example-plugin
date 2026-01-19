@@ -1,4 +1,4 @@
-package com.krakenplugins.example.firemaking;
+package com.krakenpluging.example.firemaking;
 
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -10,9 +10,9 @@ import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.service.tile.AreaService;
 import com.kraken.api.service.tile.GameArea;
-import com.krakenplugins.example.firemaking.overlay.SceneOverlay;
-import com.krakenplugins.example.firemaking.overlay.ScriptOverlay;
-import com.krakenplugins.example.firemaking.script.FiremakingScript;
+import com.krakenpluging.example.firemaking.overlay.SceneOverlay;
+import com.krakenpluging.example.firemaking.overlay.ScriptOverlay;
+import com.krakenpluging.example.firemaking.script.FiremakingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;

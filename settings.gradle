@@ -1,0 +1,11 @@
+rootProject.name = 'kraken-example-plugin'
+
+include 'fishing'
+include 'jewelry'
+include 'mining'
+include 'woodcutting'
+include 'firemaking'
+include 'fishing'
+include 'jewelry'
+include 'mining'
+include 'woodcutting'
