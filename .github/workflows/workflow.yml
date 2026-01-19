@@ -1,0 +1,146 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean buildAndCollectSimpleJars --stacktrace
+
+      - name: Calculate version
+        run: |
+          # Read base version from file
+          BASE_VERSION=$(cat version.txt | tr -d '[:space:]')
+          
+          # Extract major.minor from base version (e.g., "1.1" from "1.1.0")
+          MAJOR_MINOR=$(echo $BASE_VERSION | cut -d. -f1,2)
+          
+          # Check if base version tag already exists
+          if git rev-parse "refs/tags/${BASE_VERSION}" >/dev/null 2>&1; then
+            # Base version exists, find the highest patch number
+            LAST_TAG=$(git tag -l "${MAJOR_MINOR}.*" --sort=-version:refname | head -n 1)
+            LAST_PATCH=$(echo $LAST_TAG | awk -F. '{print $NF}')
+            PATCH=$((LAST_PATCH + 1))
+            VERSION="${MAJOR_MINOR}.${PATCH}"
+          else
+            # Base version doesn't exist yet, use it as-is
+            VERSION="${BASE_VERSION}"
+          fi
+          
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Calculated version: $VERSION"
+
+      - name: Generate manifest.json
+        run: |
+          # Get current timestamp in ISO format
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Start building the manifest JSON
+          cat > manifest.json << 'MANIFEST_START'
+          {
+            "repository": {
+              "id": "kraken-example-plugin",
+              "name": "Kraken Example Plugins",
+              "version": "VERSION_PLACEHOLDER",
+              "author": "RuneWraith",
+              "description": "Collection of RuneLite Automation plugins built with the Kraken API.",
+              "website": "https://github.com/cbartram/kraken-example-plugin",
+              "lastUpdated": "TIMESTAMP_PLACEHOLDER"
+            },
+            "plugins": [
+          MANIFEST_START
+          
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" manifest.json
+          sed -i "s/TIMESTAMP_PLACEHOLDER/$TIMESTAMP/g" manifest.json
+          
+          # Process each JAR file in build/plugins directory
+          FIRST=true
+          for jar in build/plugins/*.jar; do
+            if [ -f "$jar" ]; then
+              # Get filename without path
+              FILENAME=$(basename "$jar")
+          
+              # Extract plugin name and version from filename
+              # Assumes format: pluginname-version.jar
+              PLUGIN_NAME=$(echo "$FILENAME" | sed 's/-[0-9].*//' | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2));}1')
+              PLUGIN_VERSION=$(echo "$FILENAME" | grep -oP '\d+\.\d+\.\d+' || echo "1.0.0")
+          
+              # Calculate SHA256
+              SHA256=$(sha256sum "$jar" | awk '{print $1}')
+          
+              # Add comma if not first entry
+              if [ "$FIRST" = false ]; then
+                echo "," >> manifest.json
+              fi
+              FIRST=false
+          
+              # Add plugin entry
+              cat >> manifest.json << PLUGIN_ENTRY
+                {
+                  "name": "$PLUGIN_NAME",
+                  "version": "$PLUGIN_VERSION",
+                  "artifact": {
+                    "url": "https://github.com/cbartram/kraken-example-plugin/releases/download/v$VERSION/$FILENAME",
+                    "sha256": "$SHA256"
+                  }
+                }
+          PLUGIN_ENTRY
+            fi
+          done
+          
+          # Close the JSON
+          cat >> manifest.json << 'MANIFEST_END'
+            ]
+          }
+          MANIFEST_END
+          
+          echo "Generated manifest.json:"
+          cat manifest.json
+
+      - name: Create Git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          body: |
+            Automated release of version ${{ env.VERSION }}
+            
+            ## Plugins included in this release:
+            See manifest.json for full details.
+          files: |
+            build/plugins/*.jar
+            manifest.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
