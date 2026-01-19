@@ -49,25 +49,31 @@ in their respective README's linked below.
 # QuickStart
 
 To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
-You must add `-ea` to your VM args to enable assertions and add `--developer-mode` and `com.krakenplugins.example.<package>.<class>`
-as arguments when you run the JAR. See the example below.
+You must add `-ea` to your VM args to enable assertions and add `--developer-mode` as an argument when you run the JAR. 
 
-Once you have the example plugin cloned and setup within Intellij, run plugins with:
+Once you have the example plugin cloned and set up within Intellij, build and run the plugins with:
 
 ```shell
 export GITHUB_ACTOR=<github-username>
 export GITHUB_TOKEN=<github-personal-access-token>
 
-./gradlew clean build
-
-java -jar ./build/libs/kraken-example-plugin-1.0.0.jar --developer-mode com.krakenplugins.example.mining.MiningPlugin
+./gradlew clean buildAndCollectSimpleJars --stacktrace --parallel
 ```
 
-You should see: "Mining Plugin" within your set of plugins in the sidebar.
+Your plugin jars will be built in the `./build/plugins` directory. 
 
-> :warning: Note: Pass the full package and class name of the plugin you want to run as the second argument
-> when starting the plugin. For example use `com.krakenplugins.example.woodcutting.WoodcuttingPlugin` to start the 
-> Woodcutting plugin instead of the mining plugin.
+## Running Plugins
+
+You can run each plugin indepentently with its associated `RunPluginXTest.java` file in the `test` directory of each module.
+You should see: "Mining Plugin" within your set of plugins in the RuneLite sidebar.
+
+If you would like to load all the plugins at once, you can move them to `~/.runelite/kraken/sideloaded-plugins` assuming you are using the 
+[Kraken client](https://kraken-plugins.com/).
+
+Since these plugins require the Kraken API you must have the API JAR on the runtime classpath for the plugins to work
+(hence why just sideloading with the Kraken client is the easiest option). Instructions for setting up the Kraken Client can [be found here](https://kraken-plugins.com/docs/client/download.html).
+
+![sideloaded-plugins](docs/images/sideloaded.png)
 
 ## Gradle Kraken API
 
