@@ -47,7 +47,7 @@ in their respective README's linked below.
 - [Firemaking Plugin](docs/FIREMAKING.md)
 
 > **Note:** These plugins are dependent on the [Kraken API](https://github.com/cbartram/kraken-api) and require the Kraken Client to be installed. We strongly
-> recommend using the [Kraken Client](https://kraken-plugins.com/)to make testing and using these plugins simple.
+> recommend using the [Kraken Client](https://kraken-plugins.com/) to make testing and using these plugins simple.
 
 # QuickStart
 
