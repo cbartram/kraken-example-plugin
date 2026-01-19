@@ -46,12 +46,51 @@ in their respective README's linked below.
 - [Jewelry Plugin](docs/JEWELRY.md)
 - [Firemaking Plugin](docs/FIREMAKING.md)
 
+> **Note:** These plugins are dependent on the [Kraken API](https://github.com/cbartram/kraken-api) and require the Kraken Client to be installed. We strongly
+> recommend using the [Kraken Client](https://kraken-plugins.com/)to make testing and using these plugins simple.
+
 # QuickStart
+
+Because the [Kraken API](https://github.com/cbartram/kraken-api) is required on the Runtime classpath we recommend using the [Kraken Client](https://kraken-plugins.com/docs/client/download.html) to sideload the plugins
+as it already loads the [Kraken API](https://github.com/cbartram/kraken-api) automatically. This ensures you don't have to write your own plugin loader! The
+following steps assume you are using the Kraken client.
+
+Instructions for setting up the Kraken Client can [be found here](https://kraken-plugins.com/docs/client/download.html).
+
+## Run with External Repository
+
+The Kraken client supports loading plugins from external repositories, including this one! To load these 
+plugins, simply add this repo as a source for the plugins.
+
+![external-repo](docs/images/add-repo.png)
+
+Paste the link to the repositories latest manifest here in the dialogue:
+
+`https://github.com/cbartram/kraken-example-plugin/releases/latest/download/manifest.json`
+
+Once you add this repository the plugins will be loaded automatically:
+
+![repo-loaded](docs/images/repo-loaded.png)
+
+You will find your plugins in the Kraken plugins list:
+
+![sideloaded-plugins-list](docs/images/sideloaded.png)
+
+## Run Sideloaded
+
+If you would like to load all the plugins at once, you can move the built plugin jar files to `~/.runelite/kraken/sideloaded-plugins` assuming you are using the 
+[Kraken client](https://kraken-plugins.com/).
+
+The plugins will be loaded in the list of Kraken plugins.
+
+![sideloaded-plugins](docs/images/sideloaded.png)
+
+## Building
 
 To set up your development environment, we recommend following [this guide on RuneLite's Wiki](https://github.com/runelite/runelite/wiki/Building-with-IntelliJ-IDEA).
 You must add `-ea` to your VM args to enable assertions and add `--developer-mode` as an argument when you run the JAR. 
 
-Once you have the example plugin cloned and set up within Intellij, build and run the plugins with:
+Once you have the example plugin cloned and set up within Intellij, build and the plugins with:
 
 ```shell
 export GITHUB_ACTOR=<github-username>
@@ -60,20 +99,8 @@ export GITHUB_TOKEN=<github-personal-access-token>
 ./gradlew clean buildAndCollectSimpleJars --stacktrace --parallel
 ```
 
-Your plugin jars will be built in the `./build/plugins` directory. 
-
-## Running Plugins
-
-You can run each plugin indepentently with its associated `RunPluginXTest.java` file in the `test` directory of each module.
-You should see: "Mining Plugin" within your set of plugins in the RuneLite sidebar.
-
-If you would like to load all the plugins at once, you can move them to `~/.runelite/kraken/sideloaded-plugins` assuming you are using the 
-[Kraken client](https://kraken-plugins.com/).
-
-Since these plugins require the Kraken API you must have the API JAR on the runtime classpath for the plugins to work
-(hence why just sideloading with the Kraken client is the easiest option). Instructions for setting up the Kraken Client can [be found here](https://kraken-plugins.com/docs/client/download.html).
-
-![sideloaded-plugins](docs/images/sideloaded.png)
+Your plugin jars will be built in the `./build/plugins` directory. You will need to ensure the Kraken API jar 
+is on RuneLite's runtime classpath in order for the plugins to load correctly.
 
 ## Gradle Kraken API
 
