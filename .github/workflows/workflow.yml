@@ -39,15 +39,23 @@ jobs:
           # Extract major.minor from base version (e.g., "1.1" from "1.1.0")
           MAJOR_MINOR=$(echo $BASE_VERSION | cut -d. -f1,2)
           
-          # Check if base version tag already exists
-          if git rev-parse "refs/tags/${BASE_VERSION}" >/dev/null 2>&1; then
-            # Base version exists, find the highest patch number
-            LAST_TAG=$(git tag -l "${MAJOR_MINOR}.*" --sort=-version:refname | head -n 1)
-            LAST_PATCH=$(echo $LAST_TAG | awk -F. '{print $NF}')
+          # FIX 1: Check for "v${BASE_VERSION}" instead of just "${BASE_VERSION}"
+          if git rev-parse "refs/tags/v${BASE_VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${BASE_VERSION} exists. Incrementing patch..."
+            
+            # FIX 2: Search for tags starting with "v", and sort by version properly
+            LAST_TAG=$(git tag -l "v${MAJOR_MINOR}.*" --sort=-v:refname | head -n 1)
+            
+            # FIX 3: Strip the 'v' prefix before doing math
+            # This converts "v1.0.0" -> "1.0.0"
+            CLEAN_TAG=${LAST_TAG#v}
+            
+            LAST_PATCH=$(echo $CLEAN_TAG | awk -F. '{print $NF}')
             PATCH=$((LAST_PATCH + 1))
             VERSION="${MAJOR_MINOR}.${PATCH}"
           else
             # Base version doesn't exist yet, use it as-is
+            echo "Tag v${BASE_VERSION} does not exist. Starting new release."
             VERSION="${BASE_VERSION}"
           fi
           
