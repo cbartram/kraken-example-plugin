@@ -78,6 +78,51 @@ public interface JewelryConfig extends Config {
 	}
 
 	@ConfigSection(
+			name = "Resupply",
+			description = "Options for configuring how the script resupplies materials when out.",
+			position = 3
+	)
+	String resupply = "resupply";
+
+	@Range(min = 1, max = Integer.MAX_VALUE)
+	@ConfigItem(
+			keyName = "coins",
+			name = "Max coins to use",
+			description = "The maximum amount of coins that will be withdrawn to resupply.",
+			position = 1,
+			section = resupply
+	)
+	default int maxCoins() {
+		return 300000;
+	}
+
+	@Range(max = 100)
+	@ConfigItem(
+			keyName = "purchaseBufferPercent",
+			name = "Purchase Buffer %",
+			description = "A percentage representing the maximum increase in price that can be used to purchase materials <br>" +
+					"For example 5, would mean that the script may try to purchase materials for 5% over the actively traded price.",
+			position = 2,
+			section = resupply
+	)
+	default int purchaseBufferPercent() {
+		return 3;
+	}
+
+	@Range(max = 100)
+	@ConfigItem(
+			keyName = "sellBufferPercent",
+			name = "Sell Buffer %",
+			description = "A percentage representing the maximum reduction in price that can be used to sell jewelry <br>" +
+					"For example 5, would mean that the script may try to sell jewelry for 5% under the actively traded price.",
+			position = 3,
+			section = resupply
+	)
+	default int sellBufferPercent() {
+		return 3;
+	}
+
+	@ConfigSection(
 			name = "Overlays",
 			description = "Script overlay options",
 			position = 999

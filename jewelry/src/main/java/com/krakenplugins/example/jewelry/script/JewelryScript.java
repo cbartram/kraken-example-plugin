@@ -8,6 +8,7 @@ import com.krakenplugins.example.jewelry.script.state.BankTask;
 import com.krakenplugins.example.jewelry.script.state.CraftTask;
 import com.krakenplugins.example.jewelry.script.state.OpenBankTask;
 import com.krakenplugins.example.jewelry.script.state.OpenFurnaceTask;
+import com.krakenplugins.example.jewelry.script.state.PurchaseSuppliesTask;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,8 +27,9 @@ public class JewelryScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public JewelryScript(BankTask bankTask, CraftTask craftTask, OpenBankTask openBankTask, OpenFurnaceTask openFurnaceTask, AreaService areaService) {
+    public JewelryScript(BankTask bankTask, CraftTask craftTask, OpenBankTask openBankTask, OpenFurnaceTask openFurnaceTask, PurchaseSuppliesTask purchaseSuppliesTask, AreaService areaService) {
         this.tasks = List.of(
+                purchaseSuppliesTask,
                 openBankTask,
                 openFurnaceTask,
                 bankTask,

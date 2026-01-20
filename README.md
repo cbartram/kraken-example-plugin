@@ -57,6 +57,10 @@ following steps assume you are using the Kraken client.
 
 Instructions for setting up the Kraken Client can [be found here](https://kraken-plugins.com/docs/client/download.html).
 
+If you'd prefer to run the plugins individually or without the Kraken Client, then each plugin has its own test file
+in `{plugin}/src/test/Run{Plugin}PluginTest.java` class which will run the plugin in RuneLite. Remember to add `-ea` to 
+your JVM assertions!
+
 ## Run with External Repository
 
 The Kraken client supports loading plugins from external repositories, including this one! To load these 
@@ -68,7 +72,7 @@ Paste the link to the repositories latest manifest here in the dialogue:
 
 `https://github.com/cbartram/kraken-example-plugin/releases/latest/download/manifest.json`
 
-Once you add this repository the plugins will be loaded automatically:
+Once you add this repository, the plugins will be loaded automatically:
 
 ![repo-loaded](docs/images/repo-loaded.png)
 

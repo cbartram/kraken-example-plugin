@@ -80,6 +80,9 @@ public class JewelryPlugin extends Plugin {
     @Getter
     private GameArea edgevilleBank;
 
+    @Getter
+    private GameArea grandExchange;
+
     private final long startTime = System.currentTimeMillis();
 
     @Provides
@@ -107,6 +110,15 @@ public class JewelryPlugin extends Plugin {
                 new WorldPoint(3099, 3500, 0)
         };
         edgevilleBank = areaService.createPolygonArea(Arrays.asList(bank));
+        WorldPoint[] ge = {
+                new WorldPoint(3161, 3495, 0),
+                new WorldPoint(3157, 3490, 0),
+                new WorldPoint(3161, 3483, 0),
+                new WorldPoint(3171, 3485, 0),
+                new WorldPoint(3172, 3492, 0),
+                new WorldPoint(3168, 3496, 0)
+        };
+        grandExchange = areaService.createPolygonArea(Arrays.asList(ge));
 
         jewelryScript.start();
         overlayManager.add(scriptOverlay);

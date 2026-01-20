@@ -62,6 +62,7 @@ public class SceneOverlay extends Overlay {
     private void renderDebug(Graphics2D graphics) {
         boolean inArea = ctx.players().local().isInArea(plugin.getEdgevilleBank());
         boolean inFurnace = ctx.players().local().isInArea(plugin.getEdgevilleFurnace());
+        boolean inGe = ctx.players().local().isInArea(plugin.getGrandExchange());
 
         Color outline = inArea ? Color.GREEN : Color.RED;
         Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
@@ -74,5 +75,11 @@ public class SceneOverlay extends Overlay {
 
         plugin.getEdgevilleFurnace().render(client, graphics, furnaceFill, false);
         plugin.getEdgevilleFurnace().render(client, graphics, furnaceOutline, true);
+
+        Color geOutline = inGe ? Color.GREEN : Color.RED;
+        Color geFill = inGe ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
+
+        plugin.getGrandExchange().render(client, graphics, geOutline, false);
+        // plugin.getGrandExchange().render(client, graphics, geFill, true);
     }
 }
