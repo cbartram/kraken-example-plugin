@@ -66,12 +66,12 @@ jobs:
         run: |
           # Get current timestamp in ISO format
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          UNIQUE_ID=$(uuidgen)
           
-          # Start building the manifest JSON
           cat > manifest.json << 'MANIFEST_START'
           {
             "repository": {
-              "id": "kraken-example-plugin",
+              "id": "ID_PLACEHOLDER",
               "name": "Kraken Example Plugins",
               "version": "VERSION_PLACEHOLDER",
               "author": "RuneWraith",
@@ -85,6 +85,7 @@ jobs:
           # Replace placeholders
           sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" manifest.json
           sed -i "s/TIMESTAMP_PLACEHOLDER/$TIMESTAMP/g" manifest.json
+          sed -i "s/ID_PLACEHOLDER/$UNIQUE_ID/g" manifest.json
           
           # Process each JAR file in build/plugins directory
           FIRST=true
@@ -94,7 +95,6 @@ jobs:
               FILENAME=$(basename "$jar")
           
               # Extract plugin name and version from filename
-              # Assumes format: pluginname-version.jar
               PLUGIN_NAME=$(echo "$FILENAME" | sed 's/-[0-9].*//' | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2));}1')
               PLUGIN_VERSION=$(echo "$FILENAME" | grep -oP '\d+\.\d+\.\d+' || echo "1.0.0")
           
