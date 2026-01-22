@@ -12,9 +12,10 @@ import com.kraken.api.service.ui.grandexchange.GrandExchangeSlot;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
+import com.krakenplugins.example.jewelry.script.ItemPrice;
 import com.krakenplugins.example.jewelry.script.JewelryScript;
+import com.krakenplugins.example.jewelry.script.PriceManager;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.game.ItemManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,7 +40,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
     private JewelryConfig config;
 
     @Inject
-    private ItemManager itemManager;
+    private PriceManager priceManager;
 
     private long lastPurchaseAttemptTime = -1;
     private int bankGoldBars = 0;
@@ -58,36 +59,41 @@ public class PurchaseSuppliesTask extends AbstractTask {
 
     @Override
     public int execute() {
-        NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest();
-        if (clerk == null) {
-            log.error("Could not find Grand Exchange Clerk");
-            return 600;
+        log.info("Attempting to purchase");
+        try {
+            // 1. Prepare Bank: Check supplies, withdraw crafted items to sell, withdraw coins
+            if (!prepareBank()) {
+                log.error("Failed to prepare bank");
+                return 600;
+            }
+
+            NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest();
+            if (clerk == null) {
+                log.error("Could not find Grand Exchange Clerk");
+                return 600;
+            }
+
+            // 2. Open GE
+            if (!clerk.interact("Exchange")) {
+                log.error("Failed to interact with Grand Exchange Clerk");
+                return 600;
+            }
+
+            SleepService.sleepUntil(geService::isOpen, 5000);
+
+            // Wait several ticks before attempting to sell
+            SleepService.sleepFor(3);
+            sellCraftedItems();
+            buySupplies();
+            depositAll();
+
+            lastPurchaseAttemptTime = System.currentTimeMillis();
+            return 0;
+        } catch (Exception e) {
+            log.error("Failed to resupply: ", e);
+        } finally {
+            lastPurchaseAttemptTime = System.currentTimeMillis();
         }
-
-        // 1. Prepare Bank: Check supplies, withdraw crafted items to sell, withdraw coins
-        if (!prepareBank()) {
-            log.error("Failed to prepare bank");
-            return 600;
-        }
-
-        SleepService.sleepFor(1);
-
-        // 2. Open GE
-        if (!clerk.interact("Exchange")) {
-            log.error("Failed to interact with Grand Exchange Clerk");
-            return 600;
-        }
-
-        if (!SleepService.sleepUntil(geService::isOpen, 5000)) {
-            log.error("Grand Exchange interface did not open");
-            return 600;
-        }
-
-        sellCraftedItems();
-        buySupplies();
-        depositAll();
-
-        lastPurchaseAttemptTime = System.currentTimeMillis();
         return 0;
     }
 
@@ -103,9 +109,11 @@ public class PurchaseSuppliesTask extends AbstractTask {
             return false;
         }
 
-        if (!SleepService.sleepUntil(bankService::isOpen, 5000)) {
-            log.error("Bank did not open");
-            return false;
+        SleepService.sleepUntil(bankService::isOpen, 5000);
+
+        if (!ctx.inventory().isEmpty()) {
+            bankService.depositAll();
+            SleepService.sleepFor(1);
         }
 
         // Check supplies in bank
@@ -119,7 +127,6 @@ public class PurchaseSuppliesTask extends AbstractTask {
         int craftedId = config.jewelry().getCraftedItemId();
         BankEntity crafted = ctx.bank().withId(craftedId).first();
         if (crafted != null && crafted.count() > 0) {
-            log.info("Withdrawing all crafted jewelry to sell");
             crafted.withdrawAllNoted();
             SleepService.sleepFor(1);
         }
@@ -165,22 +172,25 @@ public class PurchaseSuppliesTask extends AbstractTask {
     }
 
     private void sellCraftedItems() {
-        int craftedId = config.jewelry().getCraftedItemId();
-        InventoryEntity craftedItem = ctx.inventory().withId(craftedId).first();
+        int craftedId = config.jewelry().getCraftedItemId(); // Add 1 to make it noted since it will be in noted form.
+        int notedCraftedId = craftedId + 1;
+        InventoryEntity craftedItem = ctx.inventory().withId(notedCraftedId).first();
 
         if (craftedItem != null) {
             int price = getMinSellPrice(craftedId);
-            GrandExchangeSlot slot = geService.queueSellOrder(craftedId, price);
+            GrandExchangeSlot slot = geService.queueSellOrder(notedCraftedId, price);
             if (slot != null) {
                 log.info("Selling crafted items at price: {}", price);
-                if (SleepService.sleepUntil(slot::isFulfilled, 60000)) {
-                    geService.collect(slot, false); // Collect coins
-                    SleepService.sleepFor(2);
-                } else {
-                    log.warn("Sell offer timed out");
-                    geService.cancelOffer(slot);
-                    geService.collect(slot, false);
+                while(!slot.isFulfilled()) {
+                    SleepService.tick();
                 }
+
+                log.info("Item sold");
+                SleepService.sleepFor(1);
+                geService.collect(slot, false); // Collect coins
+                SleepService.sleepFor(1);
+            } else {
+                log.info("GE Slot is null, ensure there is a free slot available");
             }
         } else {
             log.info("No crafted items in inventory to sell.");
@@ -188,7 +198,6 @@ public class PurchaseSuppliesTask extends AbstractTask {
     }
 
     private void buySupplies() {
-        log.info("Buying supplies...");
         int goldBarPrice = getMaxBuyPrice(JewelryScript.GOLD_BAR);
         int gemPrice = getMaxBuyPrice(config.jewelry().getSecondaryGemId());
 
@@ -218,7 +227,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
                 currentCoins = 0;
             }
 
-            log.info("Have more gold bars than gems, buying {} gold bars, costing est: {}", toBuyGold, cost);
+            log.info("Have more gold bars than gems, buying {} gold bars, est cost: {}", toBuyGold, cost);
         } else if (bankGems < bankGoldBars) {
             int diff = bankGoldBars - bankGems;
             int cost = diff * gemPrice;
@@ -230,7 +239,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
                 toBuyGems += currentCoins / gemPrice;
                 currentCoins = 0;
             }
-            log.info("Have more gems than gold bars, buying {} gems, costing est: {}", toBuyGems, cost);
+            log.info("Have more gems than gold bars, buying {} gems, est cost: {}", toBuyGems, cost);
         } else {
             log.info("Banked gold bars: {}, banked gems: {}", bankGoldBars, bankGems);
         }
@@ -243,17 +252,19 @@ public class PurchaseSuppliesTask extends AbstractTask {
             toBuyGems += pairs;
         }
 
-        log.info("Buying {} Gold Bars and {} Gems", toBuyGold, toBuyGems);
+        log.info("Buying {} Gold Bars@{} and {} Gems@{}", toBuyGold, goldBarPrice, toBuyGems, gemPrice);
 
         GrandExchangeSlot goldSlot = null;
         GrandExchangeSlot gemSlot = null;
 
         if (toBuyGold > 0) {
             goldSlot = geService.queueBuyOrder(JewelryScript.GOLD_BAR, toBuyGold, goldBarPrice);
+            SleepService.sleepFor(3);
         }
         
         if (toBuyGems > 0) {
             gemSlot = geService.queueBuyOrder(config.jewelry().getSecondaryGemId(), toBuyGems, gemPrice);
+            SleepService.sleepFor(3);
         }
 
         // Wait for both
@@ -290,16 +301,33 @@ public class PurchaseSuppliesTask extends AbstractTask {
 
     private int getMaxBuyPrice(int itemId) {
         double percentBuffer = (double) config.purchaseBufferPercent() / 100;
-        int price = itemManager.getItemPriceWithSource(itemId, true);
-        int increase = (int) (price * percentBuffer);
-        return price + increase;
+        try {
+            ItemPrice price = priceManager.getItemPrice(itemId);
+            int diff = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
+            int increase = (int) (diff * percentBuffer);
+            log.info("Found buy price {}: {} buy over increase is: {}", diff + increase, price, increase);
+            return diff + increase;
+        } catch (Exception e) {
+            log.error("Failed to lookup price on item: {}", itemId, e);
+        }
+        return 1;
     }
 
     private int getMinSellPrice(int itemId) {
         double percentBuffer = (double) config.sellBufferPercent() / 100;
-        int price = itemManager.getItemPriceWithSource(itemId, true);
-        int increase = (int) (price * percentBuffer);
-        return price - increase;
+        log.info("Looking up item price...");
+        try {
+            ItemPrice price = priceManager.getItemPrice(itemId);
+
+            // We already factor in a reduction in price % based so go low add the average value then compute the difference buffer
+            int diff = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
+            int increase = (int) (diff * percentBuffer);
+            log.info("Calculated sell price {}: {} price sale reduction is: {}", diff - increase, price, increase);
+            return diff - increase;
+        } catch (Exception e) {
+            log.error("Failed to lookup price on item {}: ", itemId, e);
+            return 0;
+        }
     }
 
     @Override
