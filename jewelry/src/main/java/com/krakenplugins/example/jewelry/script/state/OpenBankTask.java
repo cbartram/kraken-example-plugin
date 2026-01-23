@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
@@ -45,6 +46,12 @@ public class OpenBankTask extends AbstractTask {
         if(bankBooth != null) {
             if(config.useMouse()) {
                 ctx.getMouse().move(bankBooth.raw());
+            }
+
+            int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+            if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
+                log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+                ctx.players().local().toggleRun();
             }
 
             jewelryPlugin.setTargetBankBooth(bankBooth);

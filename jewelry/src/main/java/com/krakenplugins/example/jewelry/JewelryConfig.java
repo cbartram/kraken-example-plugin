@@ -77,21 +77,41 @@ public interface JewelryConfig extends Config {
 		return Jewelry.SAPPHIRE_NECKLACE;
 	}
 
-	@ConfigItem(
-			keyName = "jewelry",
-			name = "Jewelry",
-			description = "Sets the jewelry to craft.",
-			position = 1,
-			section = crafting
+	@ConfigSection(
+			name = "Run Energy",
+			description = "Run energy settings",
+			position = 3
 	)
-	default Jewelry jewelry() {
-		return Jewelry.SAPPHIRE_NECKLACE;
+	String run = "Run";
+
+	@Range(min = 1, max = 99)
+	@ConfigItem(
+			keyName = "runEnergyThreshold",
+			name = "Run Energy Min",
+			description = "Toggles your run on at a random number between the min and max threshold set here.",
+			position = 3,
+			section = run
+	)
+	default int runEnergyThresholdMin() {
+		return 70;
+	}
+
+	@Range(min = 1, max = 99)
+	@ConfigItem(
+			keyName = "runEnergyThresholdMax",
+			name = "Run Energy Max",
+			description = "Toggles your run on at a random number between the min and max threshold set here.",
+			position = 4,
+			section = run
+	)
+	default int runEnergyThresholdMax() {
+		return 90;
 	}
 
 	@ConfigSection(
 			name = "Resupply",
 			description = "Options for configuring how the script resupplies materials when out.",
-			position = 3
+			position = 4
 	)
 	String resupply = "resupply";
 

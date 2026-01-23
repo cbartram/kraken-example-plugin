@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
+import com.kraken.api.service.util.RandomService;
+import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
@@ -27,6 +29,9 @@ public class WalkToEdgeville extends AbstractTask {
     private JewelryPlugin plugin;
 
     @Inject
+    private JewelryConfig config;
+
+    @Inject
     private PurchaseSuppliesTask purchaseSuppliesTask;
 
     private List<WorldPoint> currentPath = null;
@@ -43,6 +48,13 @@ public class WalkToEdgeville extends AbstractTask {
     public int execute() {
         try {
             isTraversing = true;
+
+            int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+            if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
+                log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+                ctx.players().local().toggleRun();
+            }
+
             WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
 
             currentPath = pathfinder.findApproximatePath(playerLocation, EDGEVILLE_BANK);

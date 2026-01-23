@@ -5,13 +5,16 @@ import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
+import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
+import lombok.extern.slf4j.Slf4j;
 
 import static com.krakenplugins.example.jewelry.script.JewelryScript.FURNACE_GAME_OBJECT;
 import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
 
+@Slf4j
 @Singleton
 public class OpenFurnaceTask extends AbstractTask {
 
@@ -40,6 +43,12 @@ public class OpenFurnaceTask extends AbstractTask {
         if(furnace != null) {
             if(config.useMouse()) {
                 ctx.getMouse().move(furnace.raw());
+            }
+
+            int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+            if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
+                log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+                ctx.players().local().toggleRun();
             }
 
             furnace.interact("Smelt");
