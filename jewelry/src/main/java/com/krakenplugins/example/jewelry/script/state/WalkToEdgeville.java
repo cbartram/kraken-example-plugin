@@ -1,7 +1,6 @@
 package com.krakenplugins.example.jewelry.script.state;
 
 import com.google.inject.Inject;
-import com.kraken.api.Context;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
@@ -17,10 +16,6 @@ import java.util.List;
 public class WalkToEdgeville extends AbstractTask {
 
     private static final WorldPoint EDGEVILLE_BANK = new WorldPoint(3096, 3496, 0);
-    private static final WorldPoint GRAND_EXCHANGE = new WorldPoint(3164, 3486, 0);
-
-    @Inject
-    private Context ctx;
 
     @Inject
     private LocalPathfinder pathfinder;
