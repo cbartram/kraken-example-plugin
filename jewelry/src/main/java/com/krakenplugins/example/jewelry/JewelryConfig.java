@@ -77,6 +77,17 @@ public interface JewelryConfig extends Config {
 		return Jewelry.SAPPHIRE_NECKLACE;
 	}
 
+	@ConfigItem(
+			keyName = "jewelry",
+			name = "Jewelry",
+			description = "Sets the jewelry to craft.",
+			position = 1,
+			section = crafting
+	)
+	default Jewelry jewelry() {
+		return Jewelry.SAPPHIRE_NECKLACE;
+	}
+
 	@ConfigSection(
 			name = "Resupply",
 			description = "Options for configuring how the script resupplies materials when out.",
@@ -141,10 +152,21 @@ public interface JewelryConfig extends Config {
 	}
 
 	@ConfigItem(
+			keyName = "showCurrentPath",
+			name = "Show Current Path",
+			description = "Show the currently calculated path.",
+			position = 2,
+			section = overlay
+	)
+	default boolean showCurrentPath() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "debug",
 			name = "Debug",
 			description = "Show debug information and overlays.",
-			position = 2,
+			position = 3,
 			section = overlay
 	)
 	default boolean debug() {

@@ -57,8 +57,11 @@ public class WalkToEdgeville extends AbstractTask {
             List<WorldPoint> stridedPath = movementService.applyVariableStride(currentPath);
             log.info("Path generated with {} waypoints", stridedPath.size());
 
+            plugin.getCurrentPath().clear();
+            plugin.getCurrentPath().addAll(stridedPath);
+
             // Traverse the path
-            boolean success = movementService.traversePath(ctx.getClient(), movementService, stridedPath);
+            boolean success = movementService.traversePath(ctx.getClient(), stridedPath);
 
             if (success) {
                 log.info("Successfully reached Edgeville");
@@ -68,10 +71,6 @@ public class WalkToEdgeville extends AbstractTask {
 
             isTraversing = false;
             return 600;
-        } catch (InterruptedException e) {
-            log.error("Path traversal interrupted", e);
-            isTraversing = false;
-            return 1000;
         } catch (Exception e) {
             log.error("Error during walk to Edgeville", e);
             isTraversing = false;

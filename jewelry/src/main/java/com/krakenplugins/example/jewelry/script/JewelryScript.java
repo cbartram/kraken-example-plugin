@@ -25,13 +25,17 @@ public class JewelryScript extends Script {
     public JewelryScript(BankTask bankTask, CraftTask craftTask, OpenBankTask openBankTask, OpenFurnaceTask openFurnaceTask,
                          PurchaseSuppliesTask purchaseSuppliesTask, WalkToEdgeville walkToEdgeville, WalkToGrandExchange walkToGrandExchange) {
         this.tasks = List.of(
+                // Walking tasks should come before other tasks because they have latches (validate() is forced to return true).
+                // meaning once we start walking, there's no guarantee we make it to our destination, which means
+                // we latch the execute down to continue executing the movement until we arrive. We don't want
+                // any other tasks returning true while we are latched, so evaluating the walking tasks first is key.
+                walkToEdgeville,
+                walkToGrandExchange,
                 openBankTask,
                 openFurnaceTask,
                 bankTask,
                 craftTask,
-                purchaseSuppliesTask,
-                walkToEdgeville,
-                walkToGrandExchange
+                purchaseSuppliesTask
         );
     }
 

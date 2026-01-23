@@ -29,7 +29,9 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -82,6 +84,9 @@ public class JewelryPlugin extends Plugin {
 
     @Getter
     private GameArea grandExchange;
+
+    @Getter
+    private final List<WorldPoint> currentPath = new ArrayList<>();
 
     private final long startTime = System.currentTimeMillis();
 

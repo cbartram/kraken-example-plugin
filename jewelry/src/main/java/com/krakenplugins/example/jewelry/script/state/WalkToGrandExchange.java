@@ -36,11 +36,14 @@ public class WalkToGrandExchange extends AbstractTask {
     @Inject
     private MovementService movementService;
 
-    private List<WorldPoint> currentPath = null;
     private boolean isTraversing = false;
 
     @Override
     public boolean validate() {
+        if (isTraversing) {
+            return true;
+        }
+
         if(!bankService.isOpen()) {
             return false;
         }
@@ -54,35 +57,57 @@ public class WalkToGrandExchange extends AbstractTask {
     @Override
     public int execute() {
         bankService.close();
-        try {
-            isTraversing = true;
-            WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
 
-            currentPath = pathfinder.findApproximatePath(playerLocation, GRAND_EXCHANGE);
-
-            if (currentPath == null || currentPath.isEmpty()) {
-                log.error("Failed to generate any path to GE");
-                isTraversing = false;
-                return 1000;
-            }
-
-            // Apply variable stride for more natural movement
-            List<WorldPoint> stridedPath = movementService.applyVariableStride(currentPath);
-            log.info("Path generated with {} waypoints", stridedPath.size());
-
-            // Traverse the path
-            boolean success = movementService.traversePath(ctx.getClient(), movementService, stridedPath);
-
-            if (success) {
-                log.info("Successfully reached GE");
-            } else {
-                log.warn("Failed to complete path to GE");
-            }
-
+        WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
+        if (playerLocation.distanceTo(GRAND_EXCHANGE) <= 5) {
+            log.info("Arrived at Grand Exchange.");
             isTraversing = false;
-            return 600;
-        } catch (InterruptedException e) {
-            log.error("Path traversal interrupted", e);
+            return 1000;
+        }
+
+        isTraversing = true;
+
+        try {
+            // Try to find a DIRECT path to the real destination
+            // We do not use backoff here. We want to know if the "Good" path is valid.
+            List<WorldPoint> directPath = pathfinder.findPath(playerLocation, GRAND_EXCHANGE);
+
+            if (directPath != null && !directPath.isEmpty()) {
+                // We have a valid path to the GE!
+                // We can fully commit to this path.
+                log.info("Direct path found. Committing fully.");
+                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath);
+
+                plugin.getCurrentPath().clear();
+                plugin.getCurrentPath().addAll(stridedPath);
+
+                movementService.traversePath(ctx.getClient(), stridedPath);
+
+
+                // This handles the entire path to GE destination in one execution so
+                // its safe to set is traversing to false and release the latch
+                isTraversing = false;
+                return 600;
+            }
+
+            // Direct path failed, use BACKOFF
+            log.info("Direct path failed. Attempting backoff...");
+            List<WorldPoint> backoffPath = pathfinder.findPathWithBackoff(playerLocation, GRAND_EXCHANGE);
+
+            if (backoffPath != null && !backoffPath.isEmpty()) {
+                // CASE B: We only have a sub-optimal path.
+                // We do NOT want to walk the whole thing, because a direct path might open up
+                // halfway through.
+                List<WorldPoint> stridedPath = movementService.applyVariableStride(backoffPath);
+
+                plugin.getCurrentPath().clear();
+                plugin.getCurrentPath().addAll(stridedPath);
+
+                movementService.traversePath(ctx.getClient(), stridedPath);
+                return 0;
+            }
+
+            log.error("Failed to generate any path (Direct or Backoff)");
             isTraversing = false;
             return 1000;
         } catch (Exception e) {
