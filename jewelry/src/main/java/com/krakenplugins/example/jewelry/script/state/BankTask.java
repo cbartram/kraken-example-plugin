@@ -29,6 +29,9 @@ public class BankTask extends AbstractTask {
     @Inject
     private JewelryPlugin plugin;
 
+    @Inject
+    private PurchaseSuppliesTask purchaseSuppliesTask;
+
     private final Random random = new Random();
 
     @Override
@@ -39,7 +42,7 @@ public class BankTask extends AbstractTask {
 
     @Override
     public int execute() {
-
+        purchaseSuppliesTask.setPurchaseComplete(false);
         List<BankInventoryEntity> necklaces = ctx.bankInventory().withName(config.jewelry().getNecklaceName()).stream().limit(5).collect(Collectors.toList());
         BankInventoryEntity necklace = null;
 
@@ -75,6 +78,17 @@ public class BankTask extends AbstractTask {
                 gem.withdraw(13);
             }
         };
+
+        BankInventoryEntity necklaceMould = ctx.bankInventory().withId(1597).first();
+
+        if(necklaceMould == null) {
+            BankEntity mould = ctx.bank().withId(1597).first();
+            if(mould == null) {
+                log.error("Player does not have mould in inventory and no necklace mould is present in the bank. Cannot craft.");
+                return 600;
+            }
+            mould.withdrawOne();
+        }
 
         // 50% chance to flip the order
         if (random.nextBoolean()) {

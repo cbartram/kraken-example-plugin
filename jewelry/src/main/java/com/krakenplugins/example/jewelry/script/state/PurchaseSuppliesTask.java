@@ -15,6 +15,8 @@ import com.krakenplugins.example.jewelry.JewelryPlugin;
 import com.krakenplugins.example.jewelry.script.ItemPrice;
 import com.krakenplugins.example.jewelry.script.JewelryScript;
 import com.krakenplugins.example.jewelry.script.PriceManager;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
@@ -46,6 +48,10 @@ public class PurchaseSuppliesTask extends AbstractTask {
     private int bankGoldBars = 0;
     private int bankGems = 0;
 
+    @Getter
+    @Setter
+    private boolean purchaseComplete = false;
+
     @Override
     public boolean validate() {
         if (lastPurchaseAttemptTime != -1 && System.currentTimeMillis() - lastPurchaseAttemptTime > 50000) {
@@ -54,7 +60,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
             return false;
         }
 
-        return ctx.players().local().isInArea(plugin.getGrandExchange()) && lastPurchaseAttemptTime == -1;
+        return ctx.players().local().isInArea(plugin.getGrandExchange()) && lastPurchaseAttemptTime == -1 && !purchaseComplete;
     }
 
     @Override
@@ -88,6 +94,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
             depositAll();
 
             lastPurchaseAttemptTime = System.currentTimeMillis();
+            purchaseComplete = true;
             return 0;
         } catch (Exception e) {
             log.error("Failed to resupply: ", e);
@@ -122,6 +129,15 @@ public class PurchaseSuppliesTask extends AbstractTask {
 
         BankEntity gems = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
         bankGems = gems != null ? gems.count() : 0;
+
+        // If we have items in the bank set purchase complete to true and close the bank
+        // this will move to the Walk to edgeville task.
+        if(bankGoldBars > 0 && bankGems > 0) {
+            purchaseComplete = true;
+            bankService.close();
+            SleepService.sleepUntil(() -> !bankService.isOpen(), 3000);
+            return false; // Return false so that it "fails" this and doesn't go and try to purchase stuff
+        }
 
         // Withdraw crafted jewelry (Noted)
         int craftedId = config.jewelry().getCraftedItemId();

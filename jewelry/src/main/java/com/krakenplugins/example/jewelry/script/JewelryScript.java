@@ -3,12 +3,7 @@ package com.krakenplugins.example.jewelry.script;
 import com.google.inject.Inject;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
-import com.kraken.api.service.tile.AreaService;
-import com.krakenplugins.example.jewelry.script.state.BankTask;
-import com.krakenplugins.example.jewelry.script.state.CraftTask;
-import com.krakenplugins.example.jewelry.script.state.OpenBankTask;
-import com.krakenplugins.example.jewelry.script.state.OpenFurnaceTask;
-import com.krakenplugins.example.jewelry.script.state.PurchaseSuppliesTask;
+import com.krakenplugins.example.jewelry.script.state.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,13 +22,16 @@ public class JewelryScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public JewelryScript(BankTask bankTask, CraftTask craftTask, OpenBankTask openBankTask, OpenFurnaceTask openFurnaceTask, PurchaseSuppliesTask purchaseSuppliesTask, AreaService areaService) {
+    public JewelryScript(BankTask bankTask, CraftTask craftTask, OpenBankTask openBankTask, OpenFurnaceTask openFurnaceTask,
+                         PurchaseSuppliesTask purchaseSuppliesTask, WalkToEdgeville walkToEdgeville, WalkToGrandExchange walkToGrandExchange) {
         this.tasks = List.of(
-                purchaseSuppliesTask,
                 openBankTask,
                 openFurnaceTask,
                 bankTask,
-                craftTask
+                craftTask,
+                purchaseSuppliesTask,
+                walkToEdgeville,
+                walkToGrandExchange
         );
     }
 
