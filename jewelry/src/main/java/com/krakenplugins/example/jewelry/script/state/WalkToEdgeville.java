@@ -41,7 +41,8 @@ public class WalkToEdgeville extends AbstractTask {
     public boolean validate() {
         return ctx.players().local().isInArea(plugin.getGrandExchange())
                 && !isTraversing
-                && purchaseSuppliesTask.isPurchaseComplete();
+                && purchaseSuppliesTask.isPurchaseComplete()
+                && config.enableResupply();
     }
 
     @Override

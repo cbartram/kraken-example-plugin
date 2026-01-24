@@ -52,7 +52,7 @@ public class WalkToGrandExchange extends AbstractTask {
         boolean hasNoGold = ctx.bank().withId(GOLD_BAR).first() == null;
         boolean hasNoGems = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first() == null;
 
-        return ctx.players().local().isInArea(plugin.getEdgevilleBank()) && (hasNoGold || hasNoGems) && !isTraversing;
+        return ctx.players().local().isInArea(plugin.getEdgevilleBank()) && (hasNoGold || hasNoGems) && !isTraversing && config.enableResupply();
     }
 
     @Override

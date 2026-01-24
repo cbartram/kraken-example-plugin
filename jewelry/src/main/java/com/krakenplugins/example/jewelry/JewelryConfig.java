@@ -115,7 +115,18 @@ public interface JewelryConfig extends Config {
 	)
 	String resupply = "resupply";
 
-	@Range(min = 1, max = Integer.MAX_VALUE)
+	@ConfigItem(
+			keyName = "enableResupply",
+			name = "Enable Resupply",
+			description = "Enables using the Grand Exchange to resupply materials when out.",
+			position = 1,
+			section = resupply
+	)
+	default boolean enableResupply() {
+		return false;
+	}
+
+	@Range(min = 1)
 	@ConfigItem(
 			keyName = "coins",
 			name = "Max coins to use",
@@ -127,6 +138,7 @@ public interface JewelryConfig extends Config {
 		return 300000;
 	}
 
+	@Units(Units.PERCENT)
 	@Range(max = 100)
 	@ConfigItem(
 			keyName = "purchaseBufferPercent",
@@ -140,6 +152,7 @@ public interface JewelryConfig extends Config {
 		return 3;
 	}
 
+	@Units(Units.PERCENT)
 	@Range(max = 100)
 	@ConfigItem(
 			keyName = "sellBufferPercent",
