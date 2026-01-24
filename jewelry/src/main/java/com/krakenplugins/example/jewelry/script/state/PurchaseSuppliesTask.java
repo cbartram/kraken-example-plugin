@@ -9,7 +9,6 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.ui.grandexchange.GrandExchangeService;
 import com.kraken.api.service.ui.grandexchange.GrandExchangeSlot;
 import com.kraken.api.service.util.SleepService;
-import com.kraken.api.service.util.price.ItemPrice;
 import com.kraken.api.service.util.price.ItemPriceService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
@@ -20,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Singleton
@@ -154,13 +154,20 @@ public class PurchaseSuppliesTask extends AbstractTask {
         return true;
     }
 
+
     private void sellCraftedItems() {
-        int craftedId = config.jewelry().getCraftedItemId(); // Add 1 to make it noted since it will be in noted form.
+        int craftedId = config.jewelry().getCraftedItemId();
         int notedCraftedId = craftedId + 1;
         InventoryEntity craftedItem = ctx.inventory().withId(notedCraftedId).first();
 
         if (craftedItem != null) {
-            int price = getMinSellPrice(craftedId);
+            int price = getMinSellPrice(craftedId).join();
+
+            if (price <= 0) {
+                log.error("Invalid sell price returned (0), aborting sell.");
+                return;
+            }
+
             GrandExchangeSlot slot = geService.queueSellOrder(notedCraftedId, price);
             if (slot != null) {
                 log.info("Selling {} {}@{}", craftedItem.raw().getQuantity(), config.jewelry().name(), price);
@@ -187,8 +194,19 @@ public class PurchaseSuppliesTask extends AbstractTask {
             return;
         }
 
-        int goldBarPrice = getMaxBuyPrice(JewelryScript.GOLD_BAR);
-        int gemPrice = getMaxBuyPrice(config.jewelry().getSecondaryGemId());
+        CompletableFuture<Integer> goldFuture = getMaxBuyPrice(JewelryScript.GOLD_BAR);
+        CompletableFuture<Integer> gemFuture = getMaxBuyPrice(config.jewelry().getSecondaryGemId());
+
+        CompletableFuture.allOf(goldFuture, gemFuture).join();
+
+        int goldBarPrice = goldFuture.join();
+        int gemPrice = gemFuture.join();
+
+        // Safety check
+        if (goldBarPrice <= 0 || gemPrice <= 0) {
+            log.error("Invalid prices returned (Gold: {}, Gem: {}). Aborting buy.", goldBarPrice, gemPrice);
+            return;
+        }
 
         int toBuyGold = 0;
         int toBuyGems = 0;
@@ -304,35 +322,67 @@ public class PurchaseSuppliesTask extends AbstractTask {
             }
         }
     }
-
-    private int getMaxBuyPrice(int itemId) {
+    /**
+     * Async calculation of Max Buy Price.
+     * Returns a Future that will eventually contain the calculated price.
+     */
+    private CompletableFuture<Integer> getMaxBuyPrice(int itemId) {
+        CompletableFuture<Integer> future = new CompletableFuture<>();
         double percentBuffer = (double) config.purchaseBufferPercent() / 100;
-        try {
-            ItemPrice price = itemPriceService.getItemPrice(itemId, "ItemPriceAPI/1.0");
-            int averagePrice = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
-            int bufferAmount = (int) (averagePrice * percentBuffer);
-            int finalPrice = averagePrice + bufferAmount;
-            log.info("Buy price for item {}: {} (avg: {}, buffer: +{})", itemId, finalPrice, averagePrice, bufferAmount);
-            return finalPrice;
-        } catch (Exception e) {
-            log.error("Failed to lookup price on item: {}", itemId, e);
-        }
-        return 1;
+
+        // Call the async service
+        itemPriceService.getItemPrice(itemId, "ItemPriceAPI/1.0", (price) -> {
+            if (price == null) {
+                log.error("Failed to lookup buy price for item: {}", itemId);
+                future.complete(1); // Default safety value
+                return;
+            }
+
+            try {
+                int averagePrice = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
+                int bufferAmount = (int) (averagePrice * percentBuffer);
+                int finalPrice = averagePrice + bufferAmount;
+
+                log.info("Buy price for item {}: {} (avg: {}, buffer: +{})", itemId, finalPrice, averagePrice, bufferAmount);
+                future.complete(finalPrice);
+            } catch (Exception e) {
+                log.error("Error calculating buy price for item {}", itemId, e);
+                future.complete(1); // Default safety value
+            }
+        });
+
+        return future;
     }
 
-    private int getMinSellPrice(int itemId) {
+    /**
+     * Async calculation of Min Sell Price.
+     * Returns a Future that will eventually contain the calculated price.
+     */
+    private CompletableFuture<Integer> getMinSellPrice(int itemId) {
+        CompletableFuture<Integer> future = new CompletableFuture<>();
         double percentBuffer = (double) config.sellBufferPercent() / 100;
-        try {
-            ItemPrice price = itemPriceService.getItemPrice(itemId, "ItemPriceAPI/1.0");
-            int averagePrice = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
-            int bufferAmount = (int) (averagePrice * percentBuffer);
-            int finalPrice = averagePrice - bufferAmount;
-            log.info("Sell price for item {}: {} (avg: {}, buffer: -{})", itemId, finalPrice, averagePrice, bufferAmount);
-            return finalPrice;
-        } catch (Exception e) {
-            log.error("Failed to lookup price on item {}: ", itemId, e);
-            return 0;
-        }
+
+        itemPriceService.getItemPrice(itemId, "ItemPriceAPI/1.0", (price) -> {
+            if (price == null) {
+                log.error("Failed to lookup sell price for item: {}", itemId);
+                future.complete(0);
+                return;
+            }
+
+            try {
+                int averagePrice = price.getLow() + ((price.getHigh() - price.getLow()) / 2);
+                int bufferAmount = (int) (averagePrice * percentBuffer);
+                int finalPrice = averagePrice - bufferAmount;
+
+                log.info("Sell price for item {}: {} (avg: {}, buffer: -{})", itemId, finalPrice, averagePrice, bufferAmount);
+                future.complete(finalPrice);
+            } catch (Exception e) {
+                log.error("Error calculating sell price for item {}", itemId, e);
+                future.complete(0);
+            }
+        });
+
+        return future;
     }
 
     @Override
