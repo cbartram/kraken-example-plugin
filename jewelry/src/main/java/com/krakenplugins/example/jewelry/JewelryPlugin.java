@@ -11,14 +11,19 @@ import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.tile.AreaService;
 import com.kraken.api.service.tile.GameArea;
+import com.kraken.api.service.util.price.ItemPrice;
+import com.kraken.api.service.util.price.ItemPriceService;
 import com.krakenplugins.example.jewelry.overlay.SceneOverlay;
 import com.krakenplugins.example.jewelry.overlay.ScriptOverlay;
 import com.krakenplugins.example.jewelry.script.JewelryScript;
+import com.krakenplugins.example.jewelry.script.ScriptMetrics;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.GameState;
+import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.callback.ClientThread;
@@ -72,6 +77,9 @@ public class JewelryPlugin extends Plugin {
     @Inject
     private AreaService areaService;
 
+    @Inject
+    private ItemPriceService itemPriceService;
+
     @Getter
     @Setter
     private GameObjectEntity targetBankBooth;
@@ -89,6 +97,9 @@ public class JewelryPlugin extends Plugin {
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     private final long startTime = System.currentTimeMillis();
+
+    @Getter
+    private final ScriptMetrics metrics = new ScriptMetrics();
 
     @Provides
     JewelryConfig provideConfig(final ConfigManager configManager) {
@@ -163,6 +174,35 @@ public class JewelryPlugin extends Plugin {
                 }
             }
 
+        }
+    }
+
+    @Subscribe
+    private void onFakeXpDrop(FakeXpDrop e) {
+        if(e.getSkill() == Skill.CRAFTING) {
+            log.info("Necklace crafted");
+            metrics.setNecklacesCrafted(metrics.getNecklacesCrafted() + 1);
+            metrics.setEstimatedProfit(calculateEstimatedProfit());
+        }
+    }
+
+    private int calculateEstimatedProfit() {
+        try {
+            ItemPrice goldPrice = itemPriceService.getItemPrice(JewelryScript.GOLD_BAR, "ItemServiceAPI/1.0");
+            ItemPrice gemPrice = itemPriceService.getItemPrice(config.jewelry().getSecondaryGemId(), "ItemServiceAPI/1.0");
+            ItemPrice necklacePrice = itemPriceService.getItemPrice(config.jewelry().getCraftedItemId(), "ItemServiceAPI/1.0");
+
+            int avgGold = goldPrice.getLow() + ((goldPrice.getHigh() - goldPrice.getLow()) / 2);
+            int avgGem = gemPrice.getLow() + ((gemPrice.getHigh() - gemPrice.getLow()) / 2);
+            int avgNecklace = necklacePrice.getLow() + ((necklacePrice.getHigh() - necklacePrice.getLow()) / 2);
+
+            int profitPerNecklace = avgNecklace - (avgGold + avgGem);
+            int totalCrafted = metrics.getNecklacesCrafted();
+
+            return totalCrafted * profitPerNecklace;
+        } catch (Exception e) {
+            log.error("Failed to fetch item prices for gold, gems, or necklaces: ", e);
+            return 0;
         }
     }
 

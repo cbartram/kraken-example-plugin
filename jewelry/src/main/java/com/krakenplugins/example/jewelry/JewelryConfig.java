@@ -142,9 +142,9 @@ public interface JewelryConfig extends Config {
 	@Range(max = 100)
 	@ConfigItem(
 			keyName = "purchaseBufferPercent",
-			name = "Purchase Buffer %",
+			name = "Purchase Buffer",
 			description = "A percentage representing the maximum increase in price that can be used to purchase materials <br>" +
-					"For example 5, would mean that the script may try to purchase materials for 5% over the actively traded price.",
+					"For example 5, would mean that the script may try to purchase materials for 5% over the avg actively traded price.",
 			position = 2,
 			section = resupply
 	)
@@ -156,9 +156,9 @@ public interface JewelryConfig extends Config {
 	@Range(max = 100)
 	@ConfigItem(
 			keyName = "sellBufferPercent",
-			name = "Sell Buffer %",
+			name = "Sell Buffer",
 			description = "A percentage representing the maximum reduction in price that can be used to sell jewelry <br>" +
-					"For example 5, would mean that the script may try to sell jewelry for 5% under the actively traded price.",
+					"For example 5, would mean that the script may try to sell jewelry for 5% under the avg actively traded price.",
 			position = 3,
 			section = resupply
 	)

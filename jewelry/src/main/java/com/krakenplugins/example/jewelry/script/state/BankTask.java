@@ -69,6 +69,7 @@ public class BankTask extends AbstractTask {
             if (goldBar != null) {
                 log.info("Withdrawing Gold");
                 goldBar.withdraw(13);
+                plugin.getMetrics().setGoldBarsRemaining(Math.max(Math.abs(goldBar.count() - 13), 0));
             }
         };
 
@@ -77,6 +78,8 @@ public class BankTask extends AbstractTask {
             if (gem != null) {
                 log.info("Withdrawing id: {}", config.jewelry().getSecondaryGemId());
                 gem.withdraw(13);
+
+                plugin.getMetrics().setGemsRemaining(Math.max(Math.abs(gem.count() - 13), 0));
             }
         };
 
