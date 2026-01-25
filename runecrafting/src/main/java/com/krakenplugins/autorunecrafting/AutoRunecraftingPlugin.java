@@ -9,6 +9,8 @@ import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
 import com.kraken.api.query.gameobject.GameObjectEntity;
+import com.kraken.api.service.tile.AreaService;
+import com.kraken.api.service.tile.GameArea;
 import com.krakenplugins.autorunecrafting.overlay.SceneOverlay;
 import com.krakenplugins.autorunecrafting.overlay.ScriptOverlay;
 import com.krakenplugins.autorunecrafting.script.RunecraftingScript;
@@ -27,6 +29,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -63,11 +66,17 @@ public class AutoRunecraftingPlugin extends Plugin {
     private AutoRunecraftingConfig config;
 
     @Inject
+    private AreaService areaService;
+
+    @Inject
     private ScriptOverlay scriptOverlay;
 
     @Getter
     @Setter
     private GameObjectEntity targetBankBooth;
+
+    @Getter
+    private GameArea faladorBank;
 
     @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
@@ -82,6 +91,18 @@ public class AutoRunecraftingPlugin extends Plugin {
     @Override
     protected void startUp() {
         ctx.initializePackets();
+
+        WorldPoint[] bank = {
+                new WorldPoint(3009, 3358, 0),
+                new WorldPoint(3009, 3353, 0),
+                new WorldPoint(3021, 3353, 0),
+                new WorldPoint(3022, 3357, 0),
+                new WorldPoint(3019, 3357, 0),
+                new WorldPoint(3019, 3359, 0),
+                new WorldPoint(3009, 3359, 0)
+        };
+        faladorBank = areaService.createPolygonArea(Arrays.asList(bank));
+
         runecraftingScript.start();
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);

@@ -50,7 +50,7 @@ public class SceneOverlay extends Overlay {
         }
 
         if(config.showCurrentPath()) {
-            localPathfinder.renderPath(plugin.getCurrentPath(), graphics, new Color(248, 35, 84));
+            localPathfinder.renderPath(plugin.getCurrentPath(), graphics, new Color(24, 191, 243));
         }
 
         if(config.targetBankBooth()) {
@@ -68,12 +68,12 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderDebug(Graphics2D graphics) {
-//        boolean inArea = ctx.players().local().isInArea(plugin.getEdgevilleBank());
-//
-//        Color outline = inArea ? Color.GREEN : Color.RED;
-//        Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
-//
-//        plugin.getEdgevilleBank().render(client, graphics, fill, false);
-//        plugin.getEdgevilleBank().render(client, graphics, outline, true);
+        boolean inArea = ctx.players().local().isInArea(plugin.getFaladorBank());
+
+        Color outline = inArea ? Color.GREEN : Color.RED;
+        Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
+
+        plugin.getFaladorBank().render(client, graphics, fill, false);
+        plugin.getFaladorBank().render(client, graphics, outline, true);
     }
 }
