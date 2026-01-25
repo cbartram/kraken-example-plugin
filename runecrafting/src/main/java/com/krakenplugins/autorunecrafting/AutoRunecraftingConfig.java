@@ -60,6 +60,37 @@ public interface AutoRunecraftingConfig extends Config {
 
 
     @ConfigSection(
+            name = "Run Energy",
+            description = "Run energy settings",
+            position = 3
+    )
+    String run = "Run";
+
+    @Range(min = 1, max = 99)
+    @ConfigItem(
+            keyName = "runEnergyThreshold",
+            name = "Run Energy Min",
+            description = "Toggles your run on at a random number between the min and max threshold set here.",
+            position = 3,
+            section = run
+    )
+    default int runEnergyThresholdMin() {
+        return 70;
+    }
+
+    @Range(min = 1, max = 99)
+    @ConfigItem(
+            keyName = "runEnergyThresholdMax",
+            name = "Run Energy Max",
+            description = "Toggles your run on at a random number between the min and max threshold set here.",
+            position = 4,
+            section = run
+    )
+    default int runEnergyThresholdMax() {
+        return 90;
+    }
+
+    @ConfigSection(
             name = "Overlays",
             description = "Script overlay options",
             position = 999

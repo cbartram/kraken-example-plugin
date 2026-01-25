@@ -106,14 +106,18 @@ public class AutoRunecraftingPlugin extends Plugin {
         faladorBank = areaService.createPolygonArea(bank);
 
         WorldPoint[] air = {
-            new WorldPoint(2986, 3299, 0),
-            new WorldPoint(2980, 3297, 0),
-            new WorldPoint(2978, 3292, 0),
-            new WorldPoint(2984, 3289, 0),
-            new WorldPoint(2989, 3290, 0),
-            new WorldPoint(2993, 3294, 0),
-            new WorldPoint(2994, 3298, 0),
-            new WorldPoint(2989, 3300, 0)
+                new WorldPoint(2988, 3299, 0),
+                new WorldPoint(2976, 3296, 0),
+                new WorldPoint(2974, 3288, 0),
+                new WorldPoint(2986, 3284, 0),
+                new WorldPoint(2996, 3288, 0),
+                new WorldPoint(2997, 3296, 0),
+                new WorldPoint(2995, 3301, 0),
+                new WorldPoint(2989, 3303, 0),
+                new WorldPoint(2983, 3302, 0),
+                new WorldPoint(2979, 3301, 0),
+                new WorldPoint(2976, 3299, 0),
+                new WorldPoint(2976, 3296, 0)
         };
         airAltar = areaService.createPolygonArea(air);
 

@@ -69,11 +69,19 @@ public class SceneOverlay extends Overlay {
 
     private void renderDebug(Graphics2D graphics) {
         boolean inArea = ctx.players().local().isInArea(plugin.getFaladorBank());
+        boolean inAltarArea = ctx.players().local().isInArea(plugin.getAirAltar());
 
         Color outline = inArea ? Color.GREEN : Color.RED;
         Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
 
         plugin.getFaladorBank().render(client, graphics, fill, false);
         plugin.getFaladorBank().render(client, graphics, outline, true);
+
+
+        Color outlineAltar = inAltarArea ? Color.GREEN : Color.RED;
+        Color fillAltar = inAltarArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
+
+        plugin.getAirAltar().render(client, graphics, fillAltar, false);
+        plugin.getAirAltar().render(client, graphics, outlineAltar, true);
     }
 }

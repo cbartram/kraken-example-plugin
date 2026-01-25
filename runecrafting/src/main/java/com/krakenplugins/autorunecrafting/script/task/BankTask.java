@@ -38,16 +38,7 @@ public class BankTask extends AbstractTask {
     @Override
     public int execute() {
         plugin.getCurrentPath().clear();
-        BankInventoryEntity craftedRunes = ctx.bankInventory()
-                .nameContains("rune")
-                .random();
-        if (craftedRunes != null) {
-            if (config.useMouse()) {
-                ctx.getMouse().move(craftedRunes.raw());
-            }
-            craftedRunes.depositAll();
-            SleepService.sleepUntil(() -> ctx.inventory().nameContains("rune").stream().findAny().isEmpty(), 3000);
-        }
+        bankService.depositAll();
 
         BankInventoryEntity inventoryTiara = ctx.bankInventory().nameContains("tiara").first();
         if(inventoryTiara != null) {

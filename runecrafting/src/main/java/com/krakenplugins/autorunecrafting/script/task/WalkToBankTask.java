@@ -44,18 +44,13 @@ public class WalkToBankTask extends AbstractTask {
             return true;
         }
 
-        if(!bankService.isOpen()) {
-            return false;
-        }
+        boolean hasRunes = ctx.inventory().nameContains("rune").first() != null;
+        boolean hasNoEssence = ctx.inventory().stream().noneMatch((i) -> i.raw().getId() == PURE_ESSENCE || i.raw().getId() == RUNE_ESSENCE);
 
-        boolean hasRunes = ctx.bankInventory().nameContains("rune").first() != null;
-        boolean hasNoEssence = ctx.bankInventory().stream().noneMatch((i) -> i.raw().getId() == PURE_ESSENCE || i.raw().getId() == RUNE_ESSENCE);
-        boolean isWearingTiara = ctx.equipment().inInterface().isWearing(AIR_TIARA);
-
+        log.info("Has runes: {}, has no essence: {}, is traversing: {}, in area: {}", hasRunes, hasNoEssence, !isTraversing, ctx.players().local().isInArea(plugin.getAirAltar()));
         return ctx.players().local().isInArea(plugin.getAirAltar())
                 && hasRunes
                 && hasNoEssence
-                && isWearingTiara
                 && !isTraversing;
     }
 

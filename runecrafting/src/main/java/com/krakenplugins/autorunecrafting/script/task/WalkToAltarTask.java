@@ -6,7 +6,6 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
-import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
@@ -26,9 +25,6 @@ public class WalkToAltarTask extends AbstractTask {
 
     @Inject
     private BankService bankService;
-
-    @Inject
-    private AutoRunecraftingConfig config;
 
     @Inject
     private LocalPathfinder pathfinder;

@@ -2,8 +2,11 @@ package com.krakenplugins.autorunecrafting.script;
 
 
 import com.google.inject.Inject;
+import com.kraken.api.Context;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
+import com.kraken.api.service.util.RandomService;
+import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.script.task.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +15,12 @@ import java.util.List;
 
 @Slf4j
 public class RunecraftingScript extends Script {
+
+    @Inject
+    private Context ctx;
+
+    @Inject
+    private AutoRunecraftingConfig config;
 
     public static final int BANK_BOOTH_ID = 24101;
     public static final int PURE_ESSENCE = 7936;
@@ -22,12 +31,14 @@ public class RunecraftingScript extends Script {
     public static final int PORTAL = 34748;
 
     private final List<Task> tasks;
+    private int randomRun;
 
     @Getter
     private String status = "Initializing";
 
     @Inject
     public RunecraftingScript(BankTask bankTask, WalkToBankTask walkToBankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
+        int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
         this.tasks = List.of(
             walkToAltarTask,
             walkToBankTask,
@@ -40,6 +51,12 @@ public class RunecraftingScript extends Script {
 
     @Override
     public int loop() {
+
+        if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
+            log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+            ctx.players().local().toggleRun();
+        }
+
         for (Task task : tasks) {
             if (task.validate()) {
                 status = task.status();
