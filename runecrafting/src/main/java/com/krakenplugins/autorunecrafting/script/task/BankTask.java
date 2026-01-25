@@ -53,7 +53,7 @@ public class BankTask extends AbstractTask {
         if(inventoryTiara != null) {
             log.info("Equipping Air tiara...");
             inventoryTiara.wear();
-            SleepService.sleep(2);
+            SleepService.sleepFor(2);
         }
 
         EquipmentEntity headSlot = ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD);
@@ -66,7 +66,7 @@ public class BankTask extends AbstractTask {
             }
 
             tiara.withdrawOne();
-            SleepService.sleep(4);
+            SleepService.sleepFor(4);
             BankInventoryEntity newTiara = ctx.bankInventory().nameContains("tiara").first();
 
             if(newTiara != null) {

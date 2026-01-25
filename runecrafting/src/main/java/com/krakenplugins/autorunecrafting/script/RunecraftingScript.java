@@ -4,9 +4,7 @@ package com.krakenplugins.autorunecrafting.script;
 import com.google.inject.Inject;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
-import com.krakenplugins.autorunecrafting.script.task.BankTask;
-import com.krakenplugins.autorunecrafting.script.task.OpenBankTask;
-import com.krakenplugins.autorunecrafting.script.task.WalkToAltarTask;
+import com.krakenplugins.autorunecrafting.script.task.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +17,9 @@ public class RunecraftingScript extends Script {
     public static final int PURE_ESSENCE = 7936;
     public static final int RUNE_ESSENCE = 1436;
     public static final int AIR_TIARA = 5527;
+    public static final int AIR_ALTAR = 34813;
+    public static final int AIR_ALTAR_INTERNAL = 34760; // Craft-rune
+    public static final int PORTAL = 34748; // Use
 
     private final List<Task> tasks;
 
@@ -26,11 +27,13 @@ public class RunecraftingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public RunecraftingScript(BankTask bankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask) {
+    public RunecraftingScript(BankTask bankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
         this.tasks = List.of(
             walkToAltarTask,
             openBankTask,
-            bankTask
+            bankTask,
+            enterAltarTask,
+            craftRunesTask
         );
     }
 
