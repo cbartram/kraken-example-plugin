@@ -15,13 +15,6 @@ import java.util.List;
 
 @Slf4j
 public class RunecraftingScript extends Script {
-
-    @Inject
-    private Context ctx;
-
-    @Inject
-    private AutoRunecraftingConfig config;
-
     public static final int BANK_BOOTH_ID = 24101;
     public static final int PURE_ESSENCE = 7936;
     public static final int RUNE_ESSENCE = 1436;
@@ -31,13 +24,17 @@ public class RunecraftingScript extends Script {
     public static final int PORTAL = 34748;
 
     private final List<Task> tasks;
-    private int randomRun;
+    private final Context ctx;
+    private final int randomRun;
+    private final AutoRunecraftingConfig config;
 
     @Getter
     private String status = "Initializing";
 
     @Inject
-    public RunecraftingScript(BankTask bankTask, WalkToBankTask walkToBankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
+    public RunecraftingScript(Context ctx, AutoRunecraftingConfig config, BankTask bankTask, WalkToBankTask walkToBankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
+        this.ctx = ctx;
+        this.config = config;
         this.randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
         this.tasks = List.of(
             walkToAltarTask,
