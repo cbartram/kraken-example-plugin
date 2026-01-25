@@ -27,8 +27,9 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
+        boolean bankBoothPresent = ctx.gameObjects().withId(BANK_BOOTH_ID).nearest() != null;
         return (!ctx.inventory().hasItem(RUNE_ESSENCE) && !ctx.inventory().hasItem(PURE_ESSENCE))
-                && ctx.players().local().isIdle() && !bankService.isOpen() && ctx.players().local().isInArea(plugin.getFaladorBank());
+                && ctx.players().local().isIdle() && !bankService.isOpen() && bankBoothPresent;
     }
 
     @Override
@@ -41,7 +42,6 @@ public class OpenBankTask extends AbstractTask {
             }
 
             plugin.setTargetBankBooth(bankBooth);
-            log.info("Opening bank");
             bankBooth.interact("Bank");
             SleepService.sleepUntil(() -> bankService.isOpen(), 8000);
         } else {

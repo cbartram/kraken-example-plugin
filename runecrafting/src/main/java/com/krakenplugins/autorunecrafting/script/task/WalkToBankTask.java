@@ -47,7 +47,6 @@ public class WalkToBankTask extends AbstractTask {
         boolean hasRunes = ctx.inventory().nameContains("rune").first() != null;
         boolean hasNoEssence = ctx.inventory().stream().noneMatch((i) -> i.raw().getId() == PURE_ESSENCE || i.raw().getId() == RUNE_ESSENCE);
 
-        log.info("Has runes: {}, has no essence: {}, is traversing: {}, in area: {}", hasRunes, hasNoEssence, !isTraversing, ctx.players().local().isInArea(plugin.getAirAltar()));
         return ctx.players().local().isInArea(plugin.getAirAltar())
                 && hasRunes
                 && hasNoEssence

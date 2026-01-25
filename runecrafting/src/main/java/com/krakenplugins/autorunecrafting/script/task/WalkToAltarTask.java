@@ -57,6 +57,7 @@ public class WalkToAltarTask extends AbstractTask {
 
     @Override
     public int execute() {
+        plugin.setTargetBankBooth(null);
         bankService.close();
 
         WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
