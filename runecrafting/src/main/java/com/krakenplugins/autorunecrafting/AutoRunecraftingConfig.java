@@ -1,0 +1,101 @@
+package com.krakenplugins.autorunecrafting;
+
+import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
+import net.runelite.client.config.*;
+
+@ConfigGroup("autorunecrafting")
+public interface AutoRunecraftingConfig extends Config {
+
+    @ConfigSection(
+            name = "Mouse",
+            description = "Options for configuring mouse movements",
+            position = 1
+    )
+    String mouse = "mouse";
+
+    @ConfigItem(
+            keyName = "useMouse",
+            name = "Use Mouse Movement",
+            description = "When true the mouse will be moved on the canvas.",
+            position = 1,
+            section = mouse
+    )
+    default boolean useMouse() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "mouseMovementStrategy",
+            name = "Movement Strategy",
+            description = "Determines which strategy is used to move the client's mouse.",
+            position = 2,
+            section = mouse
+    )
+    default MouseMovementStrategy mouseMovementStrategy() {
+        return MouseMovementStrategy.BEZIER;
+    }
+
+    @ConfigItem(
+            keyName = "replayLibrary",
+            name = "Replay Library",
+            description = "Determines which library to load when the mouse strategy is set to: REPLAY.",
+            position = 3,
+            section = mouse
+    )
+    default String replayLibrary() {
+        return "";
+    }
+
+    @Range(min = 5, max = 3000)
+    @ConfigItem(
+            keyName = "linearSteps",
+            name = "Linear Steps",
+            description = "Determines how many steps (points along the linear path) should be generated when the mouse strategy is set to: LINEAR.",
+            position = 4,
+            section = mouse
+    )
+    default int linearSteps() {
+        return 150;
+    }
+
+
+    @ConfigSection(
+            name = "Overlays",
+            description = "Script overlay options",
+            position = 999
+    )
+    String overlay = "overlay";
+
+    @ConfigItem(
+            keyName = "targetBankBooth",
+            name = "Show Target Bank Booth",
+            description = "Show the target bank booth.",
+            position = 1,
+            section = overlay
+    )
+    default boolean targetBankBooth() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "showCurrentPath",
+            name = "Show Current Path",
+            description = "Show the currently calculated path.",
+            position = 2,
+            section = overlay
+    )
+    default boolean showCurrentPath() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "debug",
+            name = "Debug",
+            description = "Show debug information and overlays.",
+            position = 3,
+            section = overlay
+    )
+    default boolean debug() {
+        return false;
+    }
+}
