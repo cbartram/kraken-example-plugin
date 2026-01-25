@@ -38,7 +38,7 @@ public class RunecraftingScript extends Script {
 
     @Inject
     public RunecraftingScript(BankTask bankTask, WalkToBankTask walkToBankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
-        int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
+        this.randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
         this.tasks = List.of(
             walkToAltarTask,
             walkToBankTask,
@@ -51,7 +51,6 @@ public class RunecraftingScript extends Script {
 
     @Override
     public int loop() {
-
         if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
             log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
             ctx.players().local().toggleRun();
