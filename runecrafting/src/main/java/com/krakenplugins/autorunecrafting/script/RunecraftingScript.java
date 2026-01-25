@@ -18,8 +18,8 @@ public class RunecraftingScript extends Script {
     public static final int RUNE_ESSENCE = 1436;
     public static final int AIR_TIARA = 5527;
     public static final int AIR_ALTAR = 34813;
-    public static final int AIR_ALTAR_INTERNAL = 34760; // Craft-rune
-    public static final int PORTAL = 34748; // Use
+    public static final int AIR_ALTAR_INTERNAL = 34760;
+    public static final int PORTAL = 34748;
 
     private final List<Task> tasks;
 
@@ -27,9 +27,10 @@ public class RunecraftingScript extends Script {
     private String status = "Initializing";
 
     @Inject
-    public RunecraftingScript(BankTask bankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
+    public RunecraftingScript(BankTask bankTask, WalkToBankTask walkToBankTask, OpenBankTask openBankTask, WalkToAltarTask walkToAltarTask, EnterAltarTask enterAltarTask, CraftRunesTask craftRunesTask) {
         this.tasks = List.of(
             walkToAltarTask,
+            walkToBankTask,
             openBankTask,
             bankTask,
             enterAltarTask,

@@ -29,7 +29,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -79,6 +78,9 @@ public class AutoRunecraftingPlugin extends Plugin {
     private GameArea faladorBank;
 
     @Getter
+    private GameArea airAltar;
+
+    @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
     private final long startTime = System.currentTimeMillis();
@@ -101,7 +103,19 @@ public class AutoRunecraftingPlugin extends Plugin {
                 new WorldPoint(3019, 3359, 0),
                 new WorldPoint(3009, 3359, 0)
         };
-        faladorBank = areaService.createPolygonArea(Arrays.asList(bank));
+        faladorBank = areaService.createPolygonArea(bank);
+
+        WorldPoint[] air = {
+            new WorldPoint(2986, 3299, 0),
+            new WorldPoint(2980, 3297, 0),
+            new WorldPoint(2978, 3292, 0),
+            new WorldPoint(2984, 3289, 0),
+            new WorldPoint(2989, 3290, 0),
+            new WorldPoint(2993, 3294, 0),
+            new WorldPoint(2994, 3298, 0),
+            new WorldPoint(2989, 3300, 0)
+        };
+        airAltar = areaService.createPolygonArea(air);
 
         runecraftingScript.start();
         overlayManager.add(scriptOverlay);

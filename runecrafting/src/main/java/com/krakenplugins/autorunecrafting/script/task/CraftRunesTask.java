@@ -21,13 +21,10 @@ public class CraftRunesTask extends AbstractTask {
 
     @Override
     public int execute() {
-        log.info("Crafting runes");
         GameObjectEntity airAltarInternal = ctx.gameObjects().withId(AIR_ALTAR_INTERNAL).first();
         if(airAltarInternal != null) {
             airAltarInternal.interact("Craft-rune");
-            log.info("Sleeping till runes are crafted");
             SleepService.sleepUntil(() -> !ctx.inventory().hasItem(RUNE_ESSENCE) && !ctx.inventory().hasItem(PURE_ESSENCE));
-            log.info("Runes crafted");
             GameObjectEntity portal = ctx.gameObjects().withId(PORTAL).first();
             if(portal != null) {
                 portal.interact("Use");
