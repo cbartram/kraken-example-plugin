@@ -10,9 +10,6 @@ import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.Random;
-
 import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.*;
 
 @Slf4j
@@ -31,13 +28,12 @@ public class OpenBankTask extends AbstractTask {
     @Override
     public boolean validate() {
         return (!ctx.inventory().hasItem(RUNE_ESSENCE) && !ctx.inventory().hasItem(PURE_ESSENCE))
-                && ctx.players().local().isIdle() && !bankService.isOpen() && !ctx.players().local().isInArea(plugin.getFaladorBank());
+                && ctx.players().local().isIdle() && !bankService.isOpen() && ctx.players().local().isInArea(plugin.getFaladorBank());
     }
 
     @Override
     public int execute() {
-        List<GameObjectEntity> bankBooths = ctx.gameObjects().withId(BANK_BOOTH_ID).sortByDistance().take(2);
-        GameObjectEntity bankBooth = bankBooths.get((new Random()).nextInt(bankBooths.size()));
+        GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_ID).sortByDistance().random();
 
         if(bankBooth != null) {
             if(config.useMouse()) {
@@ -48,6 +44,8 @@ public class OpenBankTask extends AbstractTask {
             log.info("Opening bank");
             bankBooth.interact("Bank");
             SleepService.sleepUntil(() -> bankService.isOpen(), 8000);
+        } else {
+            log.info("Bank booth entity not found ");
         }
         return 0;
     }

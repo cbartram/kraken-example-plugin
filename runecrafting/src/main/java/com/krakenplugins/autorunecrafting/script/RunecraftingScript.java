@@ -15,7 +15,7 @@ import java.util.List;
 @Slf4j
 public class RunecraftingScript extends Script {
 
-    public static final int BANK_BOOTH_ID = 10355;
+    public static final int BANK_BOOTH_ID = 24101;
     public static final int PURE_ESSENCE = 7936;
     public static final int RUNE_ESSENCE = 1436;
     public static final int AIR_TIARA = 5527;

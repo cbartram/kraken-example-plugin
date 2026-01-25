@@ -49,19 +49,31 @@ public class BankTask extends AbstractTask {
             SleepService.sleepUntil(() -> ctx.inventory().nameContains("rune").stream().findAny().isEmpty(), 3000);
         }
 
+        BankInventoryEntity inventoryTiara = ctx.bankInventory().nameContains("tiara").first();
+        if(inventoryTiara != null) {
+            log.info("Equipping Air tiara...");
+            inventoryTiara.wear();
+            SleepService.sleep(2);
+        }
 
-        EquipmentEntity airTiara = ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD);
+        EquipmentEntity headSlot = ctx.equipment().inInterface().inSlot(EquipmentInventorySlot.HEAD);
 
-        if(airTiara == null) {
+        if(headSlot == null || headSlot.getId() != AIR_TIARA) {
             BankEntity tiara = ctx.bank().withId(AIR_TIARA).first();
             if(tiara == null) {
                 log.error("Player does not have air tiara in their bank. Cannot craft runes.");
                 return 600;
             }
+
             tiara.withdrawOne();
-            SleepService.sleepFor(1);
-            EquipmentEntity newTiara = ctx.equipment().inInventory().withId(AIR_TIARA).first();
-            newTiara.wear();
+            SleepService.sleep(4);
+            BankInventoryEntity newTiara = ctx.bankInventory().nameContains("tiara").first();
+
+            if(newTiara != null) {
+                newTiara.wear();
+            } else {
+                log.error("No equipment found in inventory with name a name containing: \"tiara\"");
+            }
         }
 
 
