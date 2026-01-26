@@ -40,10 +40,6 @@ public class WalkToAltarTask extends AbstractTask {
             return true;
         }
 
-        if(!bankService.isOpen()) {
-            return false;
-        }
-
         boolean hasNoRunes = ctx.bankInventory().nameContains("rune").first() == null;
         boolean hasEssence = ctx.bankInventory().stream().anyMatch((i) -> i.raw().getId() == PURE_ESSENCE || i.raw().getId() == RUNE_ESSENCE);
         boolean isWearingTiara = ctx.equipment().inInterface().isWearing(AIR_TIARA);
@@ -61,8 +57,7 @@ public class WalkToAltarTask extends AbstractTask {
         bankService.close();
 
         WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
-        if (playerLocation.distanceTo(AIR_ALTAR) <= 5) {
-            log.info("Arrived at Air Altar.");
+        if (playerLocation.distanceTo(AIR_ALTAR) <= 7) {
             isTraversing = false;
             return 1000;
         }
