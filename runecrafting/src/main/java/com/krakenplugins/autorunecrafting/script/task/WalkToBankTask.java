@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.movement.MovementService;
+import com.kraken.api.service.movement.VariableStrideConfig;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
@@ -37,6 +38,7 @@ public class WalkToBankTask extends AbstractTask {
     private MovementService movementService;
 
     private boolean isTraversing = false;
+    private final VariableStrideConfig strideConfig = VariableStrideConfig.builder().tileDeviation(true).build();
 
     @Override
     public boolean validate() {
@@ -71,7 +73,7 @@ public class WalkToBankTask extends AbstractTask {
 
             if (directPath != null && !directPath.isEmpty()) {
                 log.info("Direct path to bank found.");
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath);
+                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath, strideConfig);
 
                 plugin.getCurrentPath().clear();
                 plugin.getCurrentPath().addAll(stridedPath);
@@ -85,7 +87,7 @@ public class WalkToBankTask extends AbstractTask {
             List<WorldPoint> backoffPath = pathfinder.findApproximatePathWithBackoff(playerLocation, FALADOR_BANK, 5);
 
             if (backoffPath != null && !backoffPath.isEmpty()) {
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(backoffPath);
+                List<WorldPoint> stridedPath = movementService.applyVariableStride(backoffPath, strideConfig);
 
                 plugin.getCurrentPath().clear();
                 plugin.getCurrentPath().addAll(stridedPath);
