@@ -2,9 +2,9 @@ package com.krakenplugins.example.jewelry.overlay;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.kraken.api.overlay.table.TableAlignment;
+import com.kraken.api.overlay.table.TableComponent;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
-import com.krakenplugins.example.jewelry.overlay.ui.TableAlignment;
-import com.krakenplugins.example.jewelry.overlay.ui.TableComponent;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
