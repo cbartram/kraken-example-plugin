@@ -6,6 +6,7 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
+import com.krakenplugins.example.mining.MiningPlugin;
 
 import static com.krakenplugins.example.mining.MiningPlugin.BANK_BOOTH_GAME_OBJECT;
 
@@ -15,9 +16,12 @@ public class OpenBankTask extends AbstractTask {
     @Inject
     private BankService bankService;
 
+    @Inject
+    private MiningPlugin plugin;
+
     @Override
     public boolean validate() {
-        return ctx.gameObjects().within(7).withId(BANK_BOOTH_GAME_OBJECT).stream().findAny().isPresent() && ctx.inventory().isFull();
+        return ctx.players().local().isInArea(plugin.getVarrockBank()) && ctx.inventory().isFull();
     }
 
     @Override

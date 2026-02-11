@@ -1,5 +1,6 @@
 package com.krakenplugins.example.mining.overlay;
 
+import com.kraken.api.Context;
 import com.krakenplugins.example.mining.MiningConfig;
 import com.krakenplugins.example.mining.MiningPlugin;
 import net.runelite.api.Client;
@@ -19,11 +20,13 @@ public class SceneOverlay extends Overlay {
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final MiningConfig config;
     private final LocalPathfinder pathfinder;
+    private final Context ctx;
 
     @Inject
-    public SceneOverlay(Client client, MiningPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config, LocalPathfinder pathfinder) {
+    public SceneOverlay(Client client, Context ctx, MiningPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, MiningConfig config, LocalPathfinder pathfinder) {
         this.client = client;
         this.plugin = plugin;
+        this.ctx = ctx;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
         this.pathfinder = pathfinder;
@@ -46,7 +49,29 @@ public class SceneOverlay extends Overlay {
             renderTargetRock();
         }
 
+        if(config.debug()) {
+            renderDebug(graphics);
+        }
+
         return null;
+    }
+
+    private void renderDebug(Graphics2D graphics) {
+        boolean inArea = ctx.players().local().isInArea(plugin.getVarrockBank());
+        boolean inAltarArea = ctx.players().local().isInArea(plugin.getMiningArea());
+
+        Color outline = inArea ? Color.GREEN : Color.RED;
+        Color fill = inArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
+
+        plugin.getVarrockBank().render(client, graphics, fill, false);
+        plugin.getVarrockBank().render(client, graphics, outline, true);
+
+
+        Color outlineAltar = inAltarArea ? Color.GREEN : Color.RED;
+        Color fillAltar = inAltarArea ? new Color(18, 227, 61, 20) : new Color(223, 41, 41, 20);
+
+        plugin.getMiningArea().render(client, graphics, fillAltar, false);
+        plugin.getMiningArea().render(client, graphics, outlineAltar, true);
     }
 
     private void renderTargetRock() {

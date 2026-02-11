@@ -3,17 +3,16 @@ package com.krakenplugins.example.mining.script.state;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
+import com.kraken.api.service.movement.MovementService;
 import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.mining.MiningPlugin;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.List;
 
-import static com.krakenplugins.example.mining.MiningPlugin.BANK_INTERMEDIATE_LOCATION;
 import static com.krakenplugins.example.mining.MiningPlugin.BANK_LOCATION;
 
 @Slf4j
@@ -26,51 +25,63 @@ public class WalkToBankTask extends AbstractTask {
     @Inject
     private MiningPlugin plugin;
 
+    @Inject
+    private MovementService movementService;
+
     @Setter
     @Getter
     private boolean arrivedAtIntermediatePoint = false;
 
+    private boolean isTraversing = false;
+    private static final List<WorldPoint> path = List.of(
+            new WorldPoint(3287, 3370, 0),
+            new WorldPoint(3293, 3377, 0),
+            new WorldPoint(3291, 3388, 0),
+            new WorldPoint(3290, 3398, 0),
+            new WorldPoint(3289, 3410, 0),
+            new WorldPoint(3283, 3418, 0),
+            new WorldPoint(3278, 3426, 0),
+            new WorldPoint(3267, 3427, 0),
+            new WorldPoint(3257, 3428, 0),
+            new WorldPoint(3253, 3420, 0)
+    );
+
     @Override
     public boolean validate() {
+        if (isTraversing) {
+            return true;
+        }
+
         boolean playerNotInBank = !ctx.players().local().isInArea(BANK_LOCATION, 3);
         return ctx.inventory().isFull()
                 && playerNotInBank
+                && !isTraversing
                 && ctx.players().local().isIdle();
     }
 
     @Override
     public int execute() {
         plugin.setTargetRock(null);
-        Player localPlayer = ctx.players().local().raw();
+        WorldPoint playerLocation = ctx.getClient().getLocalPlayer().getWorldLocation();
+        if (playerLocation.distanceTo(BANK_LOCATION) <= 2) {
+            log.info("Arrived at bank");
+            isTraversing = false;
+            return 600;
+        }
 
-        if (arrivedAtIntermediatePoint) {
-            List<WorldPoint> path = pathfinder.findSparsePath(localPlayer.getWorldLocation(), BANK_LOCATION);
-            if (!path.isEmpty()) {
-                log.info("Calculated path of length: {} to bank point", path.size());
-                plugin.getCurrentPath().addAll(path);
-                return 300;
-            }
+        isTraversing = true;
 
-            log.warn("Could not find path to bank from intermediate point. Waiting before retry.");
+        try {
+            List<WorldPoint> stridedPath = pathfinder.randomizeSparsePath(ctx.players().local().raw().getWorldLocation(), path, 2, 5, false);
+            plugin.getCurrentPath().clear();
+            plugin.getCurrentPath().addAll(stridedPath);
+            movementService.traversePath(ctx.getClient(), stridedPath);
+            return 1000;
+        } catch (Exception e) {
+            log.error("Error during walk to bank", e);
+            isTraversing = false;
             return 1000;
         }
-
-        // We haven't reached the intermediate point yet, check if we have now arrived.
-        if (localPlayer.getWorldLocation().distanceTo(BANK_INTERMEDIATE_LOCATION) <= 4) {
-            log.info("Arrived at intermediate point.");
-            arrivedAtIntermediatePoint = true;
-            return 300; // Re-run task on next tick to plan path to bank
-        }
-
-        // Still not at the intermediate point, calculate a path to it.
-        List<WorldPoint> path = pathfinder.findSparsePath(localPlayer.getWorldLocation(), BANK_INTERMEDIATE_LOCATION);
-        if (!path.isEmpty()) {
-            log.info("Calculated path of length: {} to bank intermediate point", path.size());
-            plugin.getCurrentPath().addAll(path);
-        } else {
-            log.warn("Could not find path to intermediate location.");
-        }
-        return 300;
     }
 
     @Override

@@ -8,6 +8,8 @@ import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
 import com.kraken.api.overlay.MouseOverlay;
+import com.kraken.api.service.tile.AreaService;
+import com.kraken.api.service.tile.GameArea;
 import com.krakenplugins.example.mining.overlay.SceneOverlay;
 import com.krakenplugins.example.mining.overlay.ScriptOverlay;
 import com.krakenplugins.example.mining.script.MiningScript;
@@ -43,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 public class MiningPlugin extends Plugin {
 
     public static final WorldPoint BANK_LOCATION = new WorldPoint(3253, 3421, 0);
-    public static final WorldPoint BANK_INTERMEDIATE_LOCATION = new WorldPoint(3283, 3422, 0);
     public static final WorldPoint MINE_LOCATION = new WorldPoint(3287, 3367, 0);
     public static final List<Integer> IRON_ORE_GAME_OBJECTS = List.of(11365, 11364);
     public static final List<Integer> IRON_ORE_DEPLETED_GAME_OBJECTS= List.of(11391, 11390);
@@ -74,6 +75,9 @@ public class MiningPlugin extends Plugin {
     @Inject
     private MiningConfig config;
 
+    @Inject
+    private AreaService areaService;
+
     private final long startTime = System.currentTimeMillis();
 
     @Getter
@@ -86,6 +90,12 @@ public class MiningPlugin extends Plugin {
     @Getter
     private final List<WorldPoint> currentPath = new ArrayList<>();
 
+    @Getter
+    private GameArea varrockBank;
+
+    @Getter
+    private GameArea miningArea;
+
     @Provides
     MiningConfig provideConfig(final ConfigManager configManager) {
         return configManager.getConfig(MiningConfig.class);
@@ -94,6 +104,33 @@ public class MiningPlugin extends Plugin {
     @Override
     protected void startUp() {
         ctx.initializePackets();
+
+        WorldPoint[] bankArea = {
+                new WorldPoint(3258, 3424, 0),
+                new WorldPoint(3258, 3418, 0),
+                new WorldPoint(3249, 3418, 0),
+                new WorldPoint(3249, 3424, 0)
+        };
+        varrockBank = areaService.createPolygonArea(bankArea);
+
+        WorldPoint[] minePath = {
+                new WorldPoint(3280, 3371, 0),
+                new WorldPoint(3281, 3369, 0),
+                new WorldPoint(3281, 3365, 0),
+                new WorldPoint(3277, 3362, 0),
+                new WorldPoint(3278, 3359, 0),
+                new WorldPoint(3283, 3359, 0),
+                new WorldPoint(3284, 3360, 0),
+                new WorldPoint(3287, 3360, 0),
+                new WorldPoint(3291, 3356, 0),
+                new WorldPoint(3295, 3357, 0),
+                new WorldPoint(3295, 3360, 0),
+                new WorldPoint(3293, 3363, 0),
+                new WorldPoint(3292, 3365, 0),
+                new WorldPoint(3292, 3372, 0)
+        };
+        miningArea = areaService.createPolygonArea(minePath);
+
         miningScript.start();
 
         overlayManager.add(scriptOverlay);

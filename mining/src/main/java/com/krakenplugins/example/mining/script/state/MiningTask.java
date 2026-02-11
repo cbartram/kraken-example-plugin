@@ -20,10 +20,10 @@ public class MiningTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        boolean playerInMiningArea = ctx.players().local().isInArea(MINE_LOCATION);
+        boolean playerInMiningArea = ctx.players().local().isInArea(plugin.getMiningArea());
         boolean inventoryHasSpace = !ctx.inventory().isFull();
-        boolean isIdle = ctx.players().local().isIdle();
-        return playerInMiningArea && inventoryHasSpace && isIdle;
+//        boolean isIdle = ctx.players().local().isIdle();
+        return playerInMiningArea && inventoryHasSpace;
     }
 
     @Override
@@ -32,6 +32,11 @@ public class MiningTask extends AbstractTask {
         if(plugin.getTargetRock() != null) {
             GameObjectEntity targetRock = ctx.gameObjects().filter(g -> g.raw().getWorldLocation().getX() == plugin.getTargetRock().getWorldLocation().getX() &&
                     g.raw().getWorldLocation().getY() == plugin.getTargetRock().getWorldLocation().getY()).first();
+
+            if(targetRock == null) {
+                log.error("Target rock (match) is null");
+                return 0;
+            }
 
             if(IRON_ORE_DEPLETED_GAME_OBJECTS.contains(targetRock.getId())) {
                 GameObjectEntity ironRock = findRock();
@@ -67,7 +72,7 @@ public class MiningTask extends AbstractTask {
 
     private GameObjectEntity findRock() {
         GameObjectEntity ironRock = ctx.gameObjects()
-                .within(5)
+                .within(8)
                 .filter(g -> IRON_ORE_GAME_OBJECTS.contains(g.getId()) && !IRON_ORE_DEPLETED_GAME_OBJECTS.contains(g.getId()))
                 .random();
 

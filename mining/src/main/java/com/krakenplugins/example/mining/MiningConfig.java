@@ -108,4 +108,15 @@ public interface MiningConfig extends Config {
 		return false;
 	}
 
+	@ConfigItem(
+			keyName = "debug",
+			name = "Debug",
+			description = "Shows debug related overlays like specific areas of the game.",
+			position = 3,
+			section = overlay
+	)
+	default boolean debug() {
+		return false;
+	}
+
 }
