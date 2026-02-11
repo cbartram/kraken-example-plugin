@@ -9,7 +9,7 @@ plugins {
 }
 
 def runeLiteVersion = '1.12.13' // latest.release
-def krakenApiVersion = '2.2.2'
+def krakenApiVersion = '2.2.8'
 
 allprojects {
     apply plugin: 'java'
@@ -27,7 +27,7 @@ allprojects {
         mavenCentral()
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/cbartram/kraken-api")
+            url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")
             credentials {
                 username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
@@ -57,18 +57,18 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
-    testImplementation group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+    testImplementation group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
 }
 
 subprojects {
     dependencies {
-        compileOnly group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+        compileOnly group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
         compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
         compileOnly 'org.projectlombok:lombok:1.18.30'
         annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
         testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
-        testImplementation group: 'com.github.cbartram', name:'kraken-api', version: krakenApiVersion
+        testImplementation group: 'com.github.kraken', name:'kraken-api', version: krakenApiVersion
     }
 
     tasks.withType(JavaCompile).configureEach {
