@@ -27,6 +27,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build with Gradle
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./gradlew
           ./gradlew clean buildAndCollectSimpleJars --stacktrace
@@ -76,7 +79,7 @@ jobs:
               "version": "VERSION_PLACEHOLDER",
               "author": "RuneWraith",
               "description": "Collection of RuneLite Automation plugins built with the Kraken API.",
-              "website": "https://github.com/cbartram/kraken-example-plugin",
+              "website": "https://github.com/Kraken-Plugins/kraken-example-plugins",
               "lastUpdated": "TIMESTAMP_PLACEHOLDER"
             },
             "plugins": [
@@ -113,7 +116,7 @@ jobs:
                   "name": "$PLUGIN_NAME",
                   "version": "$PLUGIN_VERSION",
                   "artifact": {
-                    "url": "https://github.com/cbartram/kraken-example-plugin/releases/download/v$VERSION/$FILENAME",
+                    "url": "https://github.com/Kraken-Plugins/kraken-example-plugin/releases/download/v$VERSION/$FILENAME",
                     "sha256": "$SHA256"
                   }
                 }

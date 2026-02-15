@@ -29,7 +29,7 @@ allprojects {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/Kraken-Plugins/kraken-api")
             credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                username = project.findProperty("gpr.usr") ?: System.getenv("GITHUB_ACTOR")
                 password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
             }
         }
