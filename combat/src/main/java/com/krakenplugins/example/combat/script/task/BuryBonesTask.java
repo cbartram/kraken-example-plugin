@@ -62,6 +62,10 @@ public class BuryBonesTask extends AbstractTask {
     }
 
     private GroundObjectEntity groundBones() {
-        return ctx.groundItems().nameContains("bones").reachable().nearest();
+        return ctx.groundItems()
+                .filter(g -> g.raw().isOwnedByLocalPlayer())
+                .nameContains("bones")
+                .reachable()
+                .nearest();
     }
 }

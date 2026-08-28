@@ -55,6 +55,7 @@ public class LootTask extends AbstractTask {
 
     private GroundObjectEntity findLoot() {
         GroundObjectEntity valuable = ctx.groundItems()
+                .filter(g -> g.raw().isOwnedByLocalPlayer())
                 .stackValueAbove(config.lootValueThreshold())
                 .reachable()
                 .nearest();
@@ -68,7 +69,11 @@ public class LootTask extends AbstractTask {
         if (ids.isEmpty()) {
             return null;
         }
-        return ctx.groundItems().filter(g -> ids.contains(g.getId())).reachable().nearest();
+        return ctx.groundItems()
+                .filter(g -> g.raw().isOwnedByLocalPlayer())
+                .filter(g -> ids.contains(g.getId()))
+                .reachable()
+                .nearest();
     }
 
     private Set<Integer> lootIds() {
