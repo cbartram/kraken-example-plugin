@@ -1,0 +1,7 @@
+plugins {
+    id 'java'
+}
+
+dependencies {}
+
+version = '1.0.0'
