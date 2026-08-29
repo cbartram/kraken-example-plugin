@@ -2,7 +2,6 @@ package com.krakenplugins.example.firemaking.overlay;
 
 import com.google.inject.Inject;
 import com.kraken.api.Context;
-import com.kraken.api.core.AbstractEntity;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import net.runelite.api.Client;
@@ -10,6 +9,7 @@ import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.gameval.ObjectID;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -17,9 +17,13 @@ import net.runelite.client.ui.overlay.OverlayUtil;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import java.awt.*;
-import java.util.stream.Collectors;
 
 public class SceneOverlay extends Overlay {
+
+    /** Forester's Campfire. Has no gameval constant, the cache symbol is {@code forestry_fire}. */
+    private static final int FORESTERS_CAMPFIRE = 49927;
+
+    private static final int RENDER_DISTANCE = 10;
 
     private final FiremakingPlugin plugin;
     private final FiremakingConfig config;
@@ -78,56 +82,40 @@ public class SceneOverlay extends Overlay {
         plugin.getBankLocation().render(client, graphics, fill, false);
         plugin.getBankLocation().render(client, graphics, outline, true);
 
-
         LocalPoint localPoint = ctx.players().local().localLocation();
-
-        // 49927 foresters
-        // 26185 regular
-
-        // Also render other nearby found fires which are not the target fire
-        java.util.List<GameObject> fires = ctx.gameObjects()
-                .withId(26185)
-                .within(10).stream().map(AbstractEntity::raw).collect(Collectors.toList());
-
-        for (GameObject fire : fires) {
-            if (fire != plugin.getTargetFire()) {
-                int distance = localPoint.distanceTo(fire.getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
-
-                String overlayText = String.format("Dist: %d", distance);
-                net.runelite.api.Point textLocation = fire.getCanvasTextLocation(graphics, overlayText, 0);
-
-                if (textLocation != null) {
-                    Color color = Color.CYAN;
-                    OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
-
-                    if (fire.getClickbox() != null) {
-                        OverlayUtil.renderPolygon(graphics, fire.getClickbox(), color);
-                    }
-                }
-            }
+        if (localPoint == null) {
+            return;
         }
 
-
-        java.util.List<GameObject> foresterFires = ctx.gameObjects()
-                .withId(49927)
-                .within(10).stream().map(AbstractEntity::raw).collect(Collectors.toList());
-
-        for (GameObject fire : foresterFires) {
-            if (fire != plugin.getTargetFire()) {
-                int distance = localPoint.distanceTo(fire.getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
-
-                String overlayText = String.format("Dist: %d", distance);
-                net.runelite.api.Point textLocation = fire.getCanvasTextLocation(graphics, overlayText, 0);
-
-                if (textLocation != null) {
-                    Color color = Color.MAGENTA;
-                    OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
-
-                    if (fire.getClickbox() != null) {
-                        OverlayUtil.renderPolygon(graphics, fire.getClickbox(), color);
+        // Both fire types come out of a single scene pass, since this runs every frame.
+        ctx.gameObjects()
+                .filter(o -> o.getId() == ObjectID.FIRE || o.getId() == FORESTERS_CAMPFIRE)
+                .within(RENDER_DISTANCE)
+                .stream()
+                .forEach(entity -> {
+                    GameObject fire = entity.raw();
+                    if (fire == plugin.getTargetFire()) {
+                        return;
                     }
-                }
-            }
+
+                    renderDistance(graphics, fire, localPoint,
+                            fire.getId() == FORESTERS_CAMPFIRE ? Color.MAGENTA : Color.CYAN);
+                });
+    }
+
+    private void renderDistance(Graphics2D graphics, GameObject fire, LocalPoint from, Color color) {
+        int distance = from.distanceTo(fire.getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
+        String overlayText = String.format("Dist: %d", distance);
+
+        net.runelite.api.Point textLocation = fire.getCanvasTextLocation(graphics, overlayText, 0);
+        if (textLocation == null) {
+            return;
+        }
+
+        OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
+
+        if (fire.getClickbox() != null) {
+            OverlayUtil.renderPolygon(graphics, fire.getClickbox(), color);
         }
     }
 }

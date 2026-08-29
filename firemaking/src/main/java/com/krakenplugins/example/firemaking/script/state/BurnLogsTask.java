@@ -8,6 +8,7 @@ import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.dialogue.DialogueService;
 import com.kraken.api.service.movement.MovementService;
+import com.kraken.api.service.tile.TileService;
 import com.kraken.api.service.ui.processing.ProcessingService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
@@ -15,6 +16,8 @@ import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.ItemID;
+import net.runelite.api.gameval.ObjectID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,15 +42,28 @@ public class BurnLogsTask extends AbstractTask {
     @Inject
     private DialogueService dialogueService;
 
-    private static final int BURNING_ANIM = 10572;
-    private static final int TICK_THRESHOLD = 16;
+    @Inject
+    private MovementService movementService;
+
+    @Inject
+    private TileService tileService;
+
+    /** Forester's Campfire. Has no gameval constant, the cache symbol is {@code forestry_fire}. */
+    private static final int FORESTERS_CAMPFIRE = 49927;
+
+    /** Fires further away than this are ignored so the script does not run across the whole scene. */
+    private static final int MAX_FIRE_DISTANCE = 5;
+
+    /** Failed light attempts on the same tile before giving up on it and picking another. */
+    private static final int MAX_LIGHT_ATTEMPTS = 3;
+
+    private int lightAttempts;
 
     @Override
     public boolean validate() {
         return ctx.inventory().hasItem(config.logName())
-                && ctx.inventory().hasItem(590) // 590 is Tinderbox ID
-                && !bankService.isOpen()
-                && (ctx.players().local().isIdle() || ctx.players().local().raw().getAnimation() == BURNING_ANIM);
+                && ctx.inventory().hasItem(ItemID.TINDERBOX)
+                && !bankService.isOpen();
     }
 
     // Priority for this method goes:
@@ -56,91 +72,122 @@ public class BurnLogsTask extends AbstractTask {
     // Light a new fire and turn it into a foresters fire.
     @Override
     public int execute() {
-        InventoryEntity tinderbox = ctx.inventory().withName("Tinderbox").first();
+        if (dialogueService.isDialoguePresent()) {
+            dialogueService.continueDialogue();
+            return 600;
+        }
+
+        // Walking, lighting or burning. isBusy() lapses once an animation stops paying out xp, which is
+        // what lets a bonfire that stopped consuming logs fall through and get restarted below.
+        if (plugin.isBusy()) {
+            return 600;
+        }
+
         InventoryEntity randomLog = ctx.inventory().withName(config.logName()).random();
-
-        // Get the nearest fire rather than a random one to prevent long runs
-        GameObjectEntity fire = ctx.gameObjects().withId(26185).nearest();
-        GameObjectEntity foresterFire = ctx.gameObjects().withId(49927).nearest();
-
-        if (ctx.players().local().raw().getAnimation() == BURNING_ANIM) {
-            if(dialogueService.isDialoguePresent()) {
-                dialogueService.continueDialogue();
-            }
-
-            if(ctx.getClient().getTickCount() - plugin.getLastFiremakingXpDropTick() > TICK_THRESHOLD && plugin.getLastFiremakingXpDropTick() != -1) {
-                log.info("Threshold since last burn reached, restarting log burn bonfire");
-                if(foresterFire != null && randomLog != null) {
-                    startBonfire(foresterFire, randomLog);
-                } else if(fire != null && randomLog != null) {
-                    startBonfire(fire, randomLog);
-                }
-            }
-
+        if (randomLog == null) {
             return 600;
         }
 
-
-        // Always prioritize forester fire over starting a new forester fire
-        if(foresterFire != null) {
-            startBonfire(foresterFire, randomLog);
-            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == BURNING_ANIM, RandomService.between(2000, 4000));
-            return 600;
-        }
-
-        // If existing fire is present (and close), add logs to it, turning it into a foresters fire
-        if (fire != null && randomLog != null && fire.raw().getWorldLocation().distanceTo(ctx.players().local().location()) < 5) {
+        GameObjectEntity fire = nearestFire();
+        if (fire != null) {
             startBonfire(fire, randomLog);
             return 600;
         }
 
-        // 3. Select a point not in the bank area but within 4 tiles of a random bank tile
+        // No fire in reach, so we need to light one. Standing in the bank means moving out first.
         Set<WorldPoint> bankTiles = plugin.getBankLocation().getTiles();
-        WorldPoint myLoc = ctx.players().local().location();
-
-        // If we are currently standing IN the bank, we must move out
-        if (bankTiles.contains(myLoc)) {
-            if (ctx.players().local().isMoving()) {
-                return 600;
-            }
-
-            WorldPoint targetSpot = findSafeSpot(bankTiles);
-            if (targetSpot != null) {
-                ctx.getService(MovementService.class).moveTo(targetSpot);
-                SleepService.sleepUntil(() -> ctx.players().local().isMoving(), 1200);
-                return 1200;
-            } else {
-                log.warn("Could not find a valid firemaking spot nearby.");
-                return 1000;
-            }
+        if (bankTiles.contains(ctx.players().local().location())) {
+            return moveToSafeSpot(bankTiles);
         }
 
-        // We are now outside the bank, and no valid fire exists nearby.
-        if (tinderbox != null && randomLog != null) {
-            tinderbox.useOn(randomLog.raw());
+        InventoryEntity tinderbox = ctx.inventory().withId(ItemID.TINDERBOX).first();
+        if (tinderbox == null) {
+            return 600;
+        }
 
-            // Wait for the animation to start so we don't spam click
-            SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() != -1, RandomService.between(1200, 1800));
+        if (config.useMouse()) {
+            ctx.getMouse().move(randomLog.raw());
+        }
+
+        tinderbox.useOn(randomLog.raw());
+        plugin.markAction();
+
+        // Wait for the animation to start so we don't spam click.
+        if (SleepService.sleepUntil(() -> !ctx.players().local().isIdle(), RandomService.between(1200, 1800))) {
+            lightAttempts = 0;
+            return 600;
+        }
+
+        // Nothing happened, so this tile probably doesn't allow fires. Try somewhere else.
+        if (++lightAttempts >= MAX_LIGHT_ATTEMPTS) {
+            log.info("Could not light a fire here after {} attempts, moving elsewhere", lightAttempts);
+            lightAttempts = 0;
+            return moveToSafeSpot(plugin.getBankLocation().getTiles());
         }
 
         return 600;
     }
 
-    private void startBonfire(GameObjectEntity fire, InventoryEntity log) {
+    /**
+     * Finds the closest reachable fire to burn on, preferring a Forester's Campfire since it burns
+     * faster. Both object types are collected in a single scene pass.
+     */
+    private GameObjectEntity nearestFire() {
+        List<GameObjectEntity> fires = ctx.gameObjects()
+                .filter(o -> o.getId() == FORESTERS_CAMPFIRE || o.getId() == ObjectID.FIRE)
+                .within(MAX_FIRE_DISTANCE)
+                .reachable()
+                .sortByDistance()
+                .list();
+
+        GameObjectEntity nearestFire = null;
+        for (GameObjectEntity candidate : fires) {
+            if (candidate.getId() == FORESTERS_CAMPFIRE) {
+                return candidate;
+            }
+
+            if (nearestFire == null) {
+                nearestFire = candidate;
+            }
+        }
+
+        return nearestFire;
+    }
+
+    private void startBonfire(GameObjectEntity fire, InventoryEntity logItem) {
         plugin.setTargetFire(fire.raw());
         if (config.useMouse()) {
-            ctx.getMouse().move(log.raw());
-       }
+            ctx.getMouse().move(logItem.raw());
+        }
 
-        log.useOn(fire.raw());
+        logItem.useOn(fire.raw());
+        plugin.markAction();
 
-        SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000));
-        processingService.process("Burn", config.logName());
-        plugin.setLastFiremakingXpDropTick(ctx.getClient().getTickCount() + 5); // Buffer so this doesn't continually execute
+        if (!SleepService.sleepUntil(() -> processingService.isOpen(), RandomService.between(4000, 6000))) {
+            log.debug("Burn amount dialogue never opened");
+            return;
+        }
+
+        if (processingService.process("Burn", config.logName())) {
+            plugin.markAction();
+        }
+    }
+
+    private int moveToSafeSpot(Set<WorldPoint> bankTiles) {
+        WorldPoint targetSpot = findSafeSpot(bankTiles);
+        if (targetSpot == null) {
+            log.warn("Could not find a valid firemaking spot nearby.");
+            return 1000;
+        }
+
+        movementService.moveTo(targetSpot);
+        plugin.markAction();
+        SleepService.sleepUntil(() -> ctx.players().local().isMoving(), 1200);
+        return 1200;
     }
 
     /**
-     * Helper to find a tile that is NOT in the bank, but close to it.
+     * Helper to find a reachable tile that is NOT in the bank, but close to it.
      */
     private WorldPoint findSafeSpot(Set<WorldPoint> bankTiles) {
         if (bankTiles.isEmpty()) return null;
@@ -157,7 +204,7 @@ public class BurnLogsTask extends AbstractTask {
 
             WorldPoint candidate = randomBankTile.dx(dx).dy(dy);
 
-            if (!bankTiles.contains(candidate)) {
+            if (!bankTiles.contains(candidate) && tileService.isTileReachable(candidate)) {
                 return candidate;
             }
         }

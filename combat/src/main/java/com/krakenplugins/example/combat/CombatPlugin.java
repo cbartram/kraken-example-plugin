@@ -29,7 +29,7 @@ import java.util.List;
 @Slf4j
 @Singleton
 @PluginDescriptor(
-        name = "Combat",
+        name = "Combat Example Plugin",
         enabledByDefault = false,
         description = "Fights a configured NPC, eating, looting, and restocking food at Varrock east bank.",
         tags = {"auto", "fighter", "npc", "combat", "kraken"}

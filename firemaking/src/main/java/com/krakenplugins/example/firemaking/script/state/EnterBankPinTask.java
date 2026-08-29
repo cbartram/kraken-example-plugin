@@ -6,17 +6,28 @@ import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
+import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Singleton
 public class EnterBankPinTask extends AbstractTask {
 
+    private static final int PIN_LENGTH = 4;
+
+    /** Three wrong pins lock the bank, so stop well before that and let the user sort it out. */
+    private static final int MAX_ATTEMPTS = 2;
+
     @Inject
     private BankService bankService;
 
     @Inject
     private FiremakingConfig config;
+
+    @Inject
+    private FiremakingPlugin plugin;
+
+    private int attempts;
 
     @Override
     public boolean validate() {
@@ -26,13 +37,23 @@ public class EnterBankPinTask extends AbstractTask {
     @Override
     public int execute() {
         String pin = config.bankPin();
-        if (pin != null && !pin.isEmpty()) {
-            int[] pinNumbers = pin.chars().map(Character::getNumericValue).toArray();
-            bankService.enterPin(pinNumbers);
-            SleepService.sleepUntil(() -> bankService.isOpen(), 3000);
-        } else {
-            log.warn("Bank pin interface is open, but no bank pin is configured in settings!");
+
+        if (pin == null || !pin.matches("\\d{" + PIN_LENGTH + "}")) {
+            plugin.pauseScript("Bank pin interface is open, set a " + PIN_LENGTH + " digit pin in the config");
+            return 600;
         }
+
+        if (++attempts > MAX_ATTEMPTS) {
+            plugin.pauseScript("Bank pin was not accepted, check the configured pin");
+            return 600;
+        }
+
+        bankService.enterPin(pin.chars().map(Character::getNumericValue).toArray());
+
+        if (SleepService.sleepUntil(() -> bankService.isOpen(), 3000)) {
+            attempts = 0;
+        }
+
         return 500;
     }
 

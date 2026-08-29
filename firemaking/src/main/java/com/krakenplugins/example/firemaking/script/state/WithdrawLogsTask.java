@@ -11,6 +11,8 @@ import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.ItemID;
 
 @Slf4j
 @Singleton
@@ -27,40 +29,46 @@ public class WithdrawLogsTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        boolean playerInventoryEmpty = !ctx.inventory().hasItem(config.logName());
-        boolean playerInBank = ctx.players().local().isInArea(plugin.getBankLocation());
-        return playerInventoryEmpty && bankService.isOpen() && playerInBank;
+        // An open bank is proof enough that we are at one, so there is no area check here. Requiring one
+        // would deadlock the script whenever the bank is opened from a tile outside the configured area.
+        return !ctx.inventory().hasItem(config.logName()) && bankService.isOpen();
     }
 
     @Override
     public int execute() {
         BankEntity logs = ctx.bank().withName(config.logName()).first();
+        if (logs == null) {
+            plugin.pauseScript("Out of " + config.logName());
+            bankService.close();
+            return 600;
+        }
 
-        if(!ctx.inventory().hasItem(590)) {
+        if (!ctx.inventory().hasItem(ItemID.TINDERBOX)) {
             log.info("Withdrawing Tinderbox");
-            BankEntity tinderbox = ctx.bank().withName("Tinderbox").first();
-            if(tinderbox != null) {
-                tinderbox.withdrawOne();
-            }
-        }
-
-        if(plugin.getTargetBanker() != null) {
-            plugin.setTargetBanker(null);
-        }
-
-        if(logs != null) {
-            if(config.useMouse()) {
-                ctx.getMouse().move(logs.raw());
+            BankEntity tinderbox = ctx.bank().withId(ItemID.TINDERBOX).first();
+            if (tinderbox == null) {
+                plugin.pauseScript("No tinderbox in the bank");
+                bankService.close();
+                return 600;
             }
 
-            logs.withdrawAll();
-            SleepService.sleepUntil(() -> ctx.inventory().isFull(), 3000);
-        } else {
-            log.info("No logs found in bank");
+            tinderbox.withdrawOne();
+            SleepService.sleepUntil(() -> ctx.inventory().hasItem(ItemID.TINDERBOX), 3000);
         }
 
-        if(config.useMouse()) {
-            WidgetEntity closeButton = ctx.widgets().withId(786434).first();
+        plugin.setTargetBanker(null);
+
+        if (config.useMouse()) {
+            ctx.getMouse().move(logs.raw());
+        }
+
+        logs.withdrawAll();
+
+        // Waiting on the logs rather than a full inventory, since the bank may hold less than a load.
+        SleepService.sleepUntil(() -> ctx.inventory().hasItem(config.logName()), 3000);
+
+        if (config.useMouse()) {
+            WidgetEntity closeButton = ctx.widgets().withId(InterfaceID.Bankmain.FRAME).first();
             if (closeButton != null) {
                 ctx.getMouse().move(closeButton.raw());
             }

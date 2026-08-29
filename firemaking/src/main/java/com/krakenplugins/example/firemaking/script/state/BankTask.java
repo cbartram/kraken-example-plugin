@@ -9,11 +9,12 @@ import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.firemaking.FiremakingConfig;
 import com.krakenplugins.example.firemaking.FiremakingPlugin;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.NPCComposition;
 
 @Slf4j
 @Singleton
 public class BankTask extends AbstractTask {
+
+    private static final String BANK_ACTION = "Bank";
 
     @Inject
     private BankService bankService;
@@ -26,31 +27,34 @@ public class BankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return (ctx.players().local().isIdle() || ctx.players().local().raw().getAnimation() == 10572) &&
+        return ctx.players().local().isIdle() &&
                 !bankService.isOpen() &&
-                ctx.npcs().withName("Banker").stream().findAny().isPresent() &&
                 ctx.inventory().withName(config.logName()).count() == 0;
     }
 
     @Override
     public int execute() {
-        NpcEntity banker = ctx.npcs().withName("Banker").nearest();
-        if(banker != null) {
-            plugin.setTargetBanker(banker.raw());
-            plugin.setTargetFire(null);
+        // No reachable() filter here: bankers stand behind a counter, so their own tile is usually
+        // unwalkable even though they can be interacted with.
+        NpcEntity banker = ctx.npcs()
+                .withName("Banker")
+                .withAction(BANK_ACTION)
+                .nearest();
 
-            if(config.useMouse()) {
-                ctx.getMouse().move(banker.raw());
-            }
-
-            NPCComposition comp = ctx.runOnClientThread(banker.raw()::getComposition);
-            if (comp == null || comp.getActions() == null) {
-                return 0;
-            }
-
-            banker.interact("Bank");
-            SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);
+        if (banker == null) {
+            log.debug("No banker with a Bank option nearby");
+            return 1200;
         }
+
+        plugin.setTargetBanker(banker.raw());
+        plugin.setTargetFire(null);
+
+        if (config.useMouse()) {
+            ctx.getMouse().move(banker.raw());
+        }
+
+        banker.interact(BANK_ACTION);
+        SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), 10000);
 
         return 1200;
     }

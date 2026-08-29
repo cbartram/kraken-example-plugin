@@ -44,8 +44,16 @@ import java.util.concurrent.TimeUnit;
 )
 public class FiremakingPlugin extends Plugin {
 
+    private static final String CONFIG_GROUP = "autofiremaker";
+
+    /**
+     * How many ticks an animation may run without any firemaking xp before the action it belongs to is
+     * treated as stalled. Roughly 10 seconds, which comfortably covers the slowest log burn.
+     */
+    private static final int STALL_TICKS = 16;
+
     @Getter
-    private GameArea bankLocation;
+    private volatile GameArea bankLocation;
 
     @Inject
     private FiremakingScript firemakingScript;
@@ -76,21 +84,25 @@ public class FiremakingPlugin extends Plugin {
     private AreaService areaService;
 
     @Getter
-    private int logsBurned;
+    private volatile int logsBurned;
 
     @Setter
     @Getter
-    private NPC targetBanker;
+    private volatile NPC targetBanker;
 
     @Setter
     @Getter
-    private GameObject targetFire;
+    private volatile GameObject targetFire;
 
-    @Setter
-    @Getter
-    private int lastFiremakingXpDropTick = -1;
+    /**
+     * Tick of the last sign of progress: a firemaking xp drop, or an interaction the script just issued.
+     */
+    private volatile int lastActionTick = -1;
 
-    private final long startTime = System.currentTimeMillis();
+    /** Firemaking xp at the last {@link StatChanged}, used to tell a real xp drop from the login event. */
+    private int lastFiremakingXp = -1;
+
+    private long startTime;
 
     @Provides
     FiremakingConfig provideConfig(final ConfigManager configManager) {
@@ -99,17 +111,29 @@ public class FiremakingPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        firemakingScript.start();
+        // createPolygonArea rasterizes with java.awt.Polygon insideness rules, which exclude the maximum
+        // x and y edges, so the vertices reach one tile past the intended north east corner (3168, 3493).
         bankLocation = areaService.createPolygonArea(List.of(
-            new WorldPoint(3167, 3493, 0),
-            new WorldPoint(3161, 3493, 0),
             new WorldPoint(3161, 3486, 0),
-            new WorldPoint(3168, 3486, 0),
-            new WorldPoint(3168, 3493, 0)
+            new WorldPoint(3169, 3486, 0),
+            new WorldPoint(3169, 3494, 0),
+            new WorldPoint(3161, 3494, 0)
         ));
+
+        logsBurned = 0;
+        lastActionTick = -1;
+        lastFiremakingXp = -1;
+        startTime = System.currentTimeMillis();
+
+        applyMouseConfig();
+
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);
+
+        if (ctx.getClient().getGameState() == GameState.LOGGED_IN) {
+            firemakingScript.start();
+        }
     }
 
     @Override
@@ -122,44 +146,90 @@ public class FiremakingPlugin extends Plugin {
 
     @Subscribe
     private void onConfigChanged(ConfigChanged event) {
-        if(event.getGroup().equals("autofiremaker")) {
-            String key = event.getKey();
+        if (!event.getGroup().equals(CONFIG_GROUP)) {
+            return;
+        }
 
-            if(key.equals("mouseMovementStrategy")) {
-                VirtualMouse.setMouseMovementStrategy(config.mouseMovementStrategy());
-                if(config.mouseMovementStrategy() == MouseMovementStrategy.REPLAY) {
-                    VirtualMouse.loadLibrary(config.replayLibrary());
-                }
-
-                if(config.mouseMovementStrategy() == MouseMovementStrategy.LINEAR) {
-                    LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
-                    linear.setSteps(config.linearSteps());
-                }
-            }
+        switch (event.getKey()) {
+            case "mouseMovementStrategy":
+            case "replayLibrary":
+            case "linearSteps":
+                applyMouseConfig();
+                break;
+            default:
+                break;
         }
     }
 
     @Subscribe
     private void onStatChanged(StatChanged e) {
-        if(e.getSkill() == Skill.FIREMAKING) {
-            logsBurned += 1;
-            lastFiremakingXpDropTick = ctx.getClient().getTickCount();
+        if (e.getSkill() != Skill.FIREMAKING) {
+            return;
         }
+
+        // The client fires this for every skill on login, so the first event only seeds the baseline.
+        if (lastFiremakingXp != -1 && e.getXp() > lastFiremakingXp) {
+            logsBurned++;
+            markAction();
+        }
+
+        lastFiremakingXp = e.getXp();
     }
 
     @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
-        final GameState gameState = event.getGameState();
-        switch (gameState) {
-            case LOGGED_IN:
-                startUp();
-                break;
-            case HOPPING:
-            case LOGIN_SCREEN:
-                shutDown();
-            default:
-                break;
+        // Covers enabling the plugin while logged out; start() is a no-op when already running.
+        if (event.getGameState() == GameState.LOGGED_IN) {
+            firemakingScript.start();
         }
+    }
+
+    /**
+     * Records that something productive just happened, so {@link #isBusy()} keeps waiting on the
+     * animation it started.
+     */
+    public void markAction() {
+        lastActionTick = ctx.getClient().getTickCount();
+    }
+
+    /**
+     * True while the player is doing something the script should not interrupt. Walking always counts.
+     * An animation only counts while it is still making progress: once no xp drop or freshly issued
+     * interaction has landed for {@link #STALL_TICKS}, the action is treated as stalled so callers can
+     * retry it. Deliberately animation-id agnostic, since each log type burns with its own animation.
+     */
+    public boolean isBusy() {
+        if (ctx.players().local().isMoving()) {
+            return true;
+        }
+
+        if (ctx.players().local().isIdle()) {
+            return false;
+        }
+
+        final int last = lastActionTick;
+        return last != -1 && ctx.getClient().getTickCount() - last <= STALL_TICKS;
+    }
+
+    private void applyMouseConfig() {
+        VirtualMouse.setMouseMovementStrategy(config.mouseMovementStrategy());
+
+        if (config.mouseMovementStrategy() == MouseMovementStrategy.REPLAY) {
+            VirtualMouse.loadLibrary(config.replayLibrary());
+        }
+
+        if (config.mouseMovementStrategy() == MouseMovementStrategy.LINEAR) {
+            LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
+            linear.setSteps(config.linearSteps());
+        }
+    }
+
+    /**
+     * Pauses the script, leaving the reason on the overlay so it is clear why it stopped.
+     */
+    public void pauseScript(String reason) {
+        log.warn("Pausing script: {}", reason);
+        firemakingScript.pause(reason);
     }
 
     public String getRuntime() {
