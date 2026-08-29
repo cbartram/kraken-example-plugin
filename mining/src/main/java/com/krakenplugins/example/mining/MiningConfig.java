@@ -15,6 +15,17 @@ public interface MiningConfig extends Config {
 	String mouse = "mouse";
 
 	@ConfigItem(
+			keyName = "useMouse",
+			name = "Use Mouse Movement",
+			description = "Moves the mouse on the canvas to make clicks.",
+			position = 0,
+			section = mouse
+	)
+	default boolean useMouseMovement() {
+		return false;
+	}
+
+	@ConfigItem(
 			keyName = "mouseMovementStrategy",
 			name = "Movement Strategy",
 			description = "Determines which strategy is used to move the client's mouse.",

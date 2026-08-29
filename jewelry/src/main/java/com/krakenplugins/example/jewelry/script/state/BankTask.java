@@ -1,6 +1,7 @@
 package com.krakenplugins.example.jewelry.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.container.bank.BankEntity;
 import com.kraken.api.query.container.bank.BankInventoryEntity;
@@ -10,15 +11,25 @@ import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.gameval.ItemID;
 
 import java.util.List;
-import java.util.Random;
-import java.util.stream.Collectors;
 
 import static com.krakenplugins.example.jewelry.script.JewelryScript.GOLD_BAR;
 
 @Slf4j
+@Singleton
 public class BankTask extends AbstractTask {
+
+    // 13 bars, 13 gems and the mould fill 27 of the 28 inventory slots.
+    private static final int MATERIALS_PER_TRIP = 13;
+
+    // How long the bank has to answer a deposit, a withdraw or a close before the loop retries it.
+    private static final long BANK_TIMEOUT_MS = 3000;
+
+    // Mean and deviation of the pause between the two withdrawals, in milliseconds.
+    private static final int WITHDRAW_PAUSE_MEAN_MS = 1200;
+    private static final int WITHDRAW_PAUSE_DEVIATION_MS = 200;
 
     @Inject
     private BankService bankService;
@@ -29,98 +40,113 @@ public class BankTask extends AbstractTask {
     @Inject
     private JewelryPlugin plugin;
 
-    @Inject
-    private PurchaseSuppliesTask purchaseSuppliesTask;
-
-    private final Random random = new Random();
-
     @Override
     public boolean validate() {
-          return ctx.players().local().isIdle() && ctx.players().local().isInArea(plugin.getEdgevilleBank()) &&
-                !ctx.inventory().hasItem(GOLD_BAR) && !ctx.inventory().hasItem(config.jewelry().getSecondaryGemId()) && bankService.isOpen();
+        // An open bank interface at Edgeville means the trip is ours to finish, whatever state it is
+        // in. Claiming every such state is what stops the script parking with the interface up.
+        return bankService.isOpen() && ctx.players().local().isInArea(plugin.getEdgevilleBank());
     }
 
     @Override
     public int execute() {
-        purchaseSuppliesTask.setPurchaseComplete(false);
-        List<BankInventoryEntity> necklaces = ctx.bankInventory().withName(config.jewelry().getNecklaceName()).stream().limit(5).collect(Collectors.toList());
-        BankInventoryEntity necklace = null;
+        String necklaceName = config.jewelry().getNecklaceName();
 
-        if (!necklaces.isEmpty()) {
-            double spread = 1.5;
-            int index = (int) Math.abs(random.nextGaussian() * spread);
-            if (index >= necklaces.size()) {
-                index = necklaces.size() - 1;
-            }
-            necklace = necklaces.get(index);
-        }
-
+        BankInventoryEntity necklace = ctx.bankInventory().withName(necklaceName).random();
         if (necklace != null) {
-            if (config.useMouse()) {
-                ctx.getMouse().move(necklace.raw());
-            }
+            // Any slot of the stack deposits all of them, so picking one at random keeps the click
+            // off the same inventory square every trip.
+            plugin.moveMouseTo(necklace.raw());
             necklace.depositAll();
-            SleepService.sleepUntil(() -> ctx.inventory().withName(config.jewelry().getNecklaceName()).stream().findAny().isEmpty(), 3000);
-        }
-
-        Runnable withdrawGold = () -> {
-            BankEntity goldBar = ctx.bank().withId(GOLD_BAR).first();
-            if (goldBar != null) {
-                log.info("Withdrawing Gold");
-                goldBar.withdraw(13);
-                plugin.getMetrics().setGoldBarsRemaining(Math.max(Math.abs(goldBar.count() - 13), 0));
-            }
-        };
-
-        Runnable withdrawGem = () -> {
-            BankEntity gem = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
-            if (gem != null) {
-                log.info("Withdrawing id: {}", config.jewelry().getSecondaryGemId());
-                gem.withdraw(13);
-
-                plugin.getMetrics().setGemsRemaining(Math.max(Math.abs(gem.count() - 13), 0));
-            }
-        };
-
-        BankInventoryEntity necklaceMould = ctx.bankInventory().withId(1597).first();
-
-        if(necklaceMould == null) {
-            BankEntity mould = ctx.bank().withId(1597).first();
-            if(mould == null) {
-                log.error("Player does not have mould in inventory and no necklace mould is present in the bank. Cannot craft.");
+            if (!SleepService.sleepUntil(() -> ctx.inventory().withName(necklaceName).isEmpty(), BANK_TIMEOUT_MS)) {
+                log.info("Necklaces are still in the inventory after depositing, retrying");
                 return 600;
             }
-            mould.withdrawOne();
         }
 
-        // 50% chance to flip the order
-        if (random.nextBoolean()) {
-            withdrawGold.run();
-            sleepGaussian(600, 1800);
-            withdrawGem.run();
-        } else {
-            withdrawGem.run();
-            sleepGaussian(600, 1800);
-            withdrawGold.run();
+        if (ctx.inventory().hasItems(GOLD_BAR, config.jewelry().getSecondaryGemId())) {
+            // Materials are already in hand, so all that is left is to leave the interface closed.
+            return closeBank();
         }
 
-        SleepService.sleep(600, 1200);
-        bankService.close();
-        return RandomService.between(600, 1000);
+        if (!withdrawMould()) {
+            return 600;
+        }
+
+        BankEntity goldBar = ctx.bank().withId(GOLD_BAR).first();
+        BankEntity gem = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
+        if (goldBar == null || gem == null) {
+            plugin.halt("The bank is out of " + (goldBar == null ? "gold bars" : "gems")
+                    + (config.enableResupply() ? "" : " — turn Resupply on to buy more"));
+            return 0;
+        }
+
+        // Withdrawing the two materials in the same order every trip is a pattern, so half the trips
+        // take the gem first.
+        List<BankEntity> order = RandomService.dicePercentage(50)
+                ? List.of(goldBar, gem)
+                : List.of(gem, goldBar);
+
+        for (BankEntity material : order) {
+            // A retry after a half-finished trip must not withdraw a second helping of what is
+            // already in the inventory.
+            if (ctx.inventory().hasItem(material.getId())) {
+                continue;
+            }
+
+            if (!material.withdraw(MATERIALS_PER_TRIP)) {
+                log.info("Withdraw of {} was not dispatched, retrying", material.getName());
+                return 600;
+            }
+            SleepService.sleepGaussian(WITHDRAW_PAUSE_MEAN_MS, WITHDRAW_PAUSE_DEVIATION_MS);
+        }
+
+        plugin.getMetrics().setGoldBarsRemaining(Math.max(goldBar.count() - MATERIALS_PER_TRIP, 0));
+        plugin.getMetrics().setGemsRemaining(Math.max(gem.count() - MATERIALS_PER_TRIP, 0));
+
+        return closeBank();
     }
 
-    private void sleepGaussian(int min, int max) {
-        int mean = (min + max) / 2;
-        int deviation = (max - min) / 6; // 99.7% of values fall within min-max
-        int sleepTime = (int) (random.nextGaussian() * deviation + mean);
+    /**
+     * Makes sure the necklace mould is in the inventory before any materials are withdrawn.
+     *
+     * @return true when the mould is in hand or on its way, false when the caller should wait. The
+     *         script is halted outright when there is no mould to be had at all.
+     */
+    private boolean withdrawMould() {
+        if (ctx.bankInventory().withId(ItemID.NECKLACE_MOULD).isPresent()) {
+            return true;
+        }
 
-        // Clamp values just in case
-        sleepTime = Math.max(min, Math.min(max, sleepTime));
-        SleepService.sleep(sleepTime);
+        BankEntity mould = ctx.bank().withId(ItemID.NECKLACE_MOULD).first();
+        if (mould == null) {
+            plugin.halt("No necklace mould in the inventory or the bank");
+            return false;
+        }
+
+        if (!mould.withdrawOne()) {
+            log.info("Withdraw of the necklace mould was not dispatched, retrying");
+            return false;
+        }
+
+        return SleepService.sleepUntil(
+                () -> ctx.bankInventory().withId(ItemID.NECKLACE_MOULD).isPresent(), BANK_TIMEOUT_MS);
+    }
+
+    /**
+     * Leaves the bank interface closed for the tasks that walk off to the furnace.
+     *
+     * @return The number of milliseconds the loop should sleep for.
+     */
+    private int closeBank() {
+        bankService.close();
+        if (!SleepService.sleepUntil(bankService::isClosed, BANK_TIMEOUT_MS)) {
+            log.info("The bank interface is still open, retrying");
+        }
+        return 600;
     }
 
     @Override
     public String status() {
-        return "Walking to Bank";
+        return "Banking";
     }
 }

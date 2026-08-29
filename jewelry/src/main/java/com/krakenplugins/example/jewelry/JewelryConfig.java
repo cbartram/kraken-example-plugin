@@ -167,6 +167,26 @@ public interface JewelryConfig extends Config {
 	}
 
 	@ConfigSection(
+			name = "Bank",
+			description = "Options for getting past the bank pin",
+			position = 5
+	)
+	String bank = "bank";
+
+	@ConfigItem(
+			keyName = "bankPin",
+			name = "Bank Pin",
+			description = "When this field is not blank, it will enter the bank pin automatically for you. <br>" +
+					"This should be a 4 digit number.",
+			position = 1,
+			section = bank,
+			secret = true
+	)
+	default String bankPin() {
+		return "";
+	}
+
+	@ConfigSection(
 			name = "Overlays",
 			description = "Script overlay options",
 			position = 999

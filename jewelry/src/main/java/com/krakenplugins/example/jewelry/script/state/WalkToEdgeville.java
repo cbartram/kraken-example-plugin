@@ -1,18 +1,16 @@
 package com.krakenplugins.example.jewelry.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
-import com.kraken.api.service.movement.MovementService;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
-import com.kraken.api.service.pathfinding.GlobalPathfinderConfig;
-import com.kraken.api.service.util.RandomService;
+import com.kraken.api.service.walker.WalkResult;
+import com.kraken.api.service.walker.Walker;
 import com.krakenplugins.example.jewelry.JewelryConfig;
 import com.krakenplugins.example.jewelry.JewelryPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
-import javax.inject.Singleton;
-import java.util.List;
+import static com.krakenplugins.example.jewelry.JewelryPlugin.WALK_CONFIG;
 
 @Slf4j
 @Singleton
@@ -21,10 +19,7 @@ public class WalkToEdgeville extends AbstractTask {
     private static final WorldPoint EDGEVILLE_BANK = new WorldPoint(3096, 3496, 0);
 
     @Inject
-    private GlobalPathfinder pathfinder;
-
-    @Inject
-    private MovementService movementService;
+    private Walker walker;
 
     @Inject
     private JewelryPlugin plugin;
@@ -35,62 +30,26 @@ public class WalkToEdgeville extends AbstractTask {
     @Inject
     private PurchaseSuppliesTask purchaseSuppliesTask;
 
-    private List<WorldPoint> currentPath = null;
-    private boolean isTraversing = false;
-
     @Override
     public boolean validate() {
+        // Head home once the trip is done, or once resupply is switched off underneath it, which
+        // leaves nothing at the Grand Exchange for any task to claim.
         return ctx.players().local().isInArea(plugin.getGrandExchange())
-                && !isTraversing
-                && purchaseSuppliesTask.isPurchaseComplete()
-                && config.enableResupply();
+                && (purchaseSuppliesTask.isPurchaseComplete() || !config.enableResupply());
     }
 
     @Override
     public int execute() {
-        try {
-            isTraversing = true;
-            int randomRun = RandomService.between(config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
-            if(ctx.players().local().currentRunEnergy() >= randomRun && !ctx.players().local().isRunEnabled()) {
-                log.info("Toggling run on, met threshold: {} between min={} max={}", randomRun, config.runEnergyThresholdMin(), config.runEnergyThresholdMax());
-                ctx.players().local().toggleRun();
-            }
-
-            WorldPoint playerLocation = ctx.players().local().location();
-            currentPath = pathfinder.findPath(playerLocation, EDGEVILLE_BANK, GlobalPathfinderConfig.builder()
-                    .useMinecarts(false)
-                    .avoidWilderness(true)
-                    .useSpiritTrees(false)
-                    .useTeleportationLevers(false)
-                    .useTeleportationPortalsPoh(false)
-                    .useTeleportationSpells(false)
-                    .useAgilityShortcuts(false)
-                    .build());
-
-            if (currentPath == null || currentPath.isEmpty()) {
-                log.error("Failed to generate any path to Edgeville");
-                isTraversing = false;
-                return 1000;
-            }
-
-            // Apply variable stride for more natural movement
-            List<WorldPoint> stridedPath = movementService.applyVariableStride(currentPath);
-            log.info("Path generated with {} waypoints", stridedPath.size());
-
-            // Traverse the path
-            boolean success = movementService.traversePath(ctx.getClient(), stridedPath);
-
-            if (success) {
-                log.info("Successfully reached Edgeville");
-            }
-
-            isTraversing = false;
-            return 600;
-        } catch (Exception e) {
-            log.error("Error during walk to Edgeville", e);
-            isTraversing = false;
-            return 1000;
+        // The walker blocks until it arrives, re-planning and opening doors along the way, so by the
+        // time this returns the script is either at the bank or done trying.
+        WalkResult result = walker.walkTo(EDGEVILLE_BANK, WALK_CONFIG);
+        if (!result.isSuccess()) {
+            return plugin.reportWalkFailure(result, "the Edgeville bank");
         }
+
+        // The trip is over, so an empty bank is free to start another one.
+        purchaseSuppliesTask.setPurchaseComplete(false);
+        return 600;
     }
 
     @Override

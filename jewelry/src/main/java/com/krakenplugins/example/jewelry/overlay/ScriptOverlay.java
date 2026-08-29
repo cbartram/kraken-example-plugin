@@ -27,48 +27,24 @@ public class ScriptOverlay extends OverlayPanel {
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        // 1. Setup the Title
         panelComponent.getChildren().add(TitleComponent.builder()
                 .text("Auto Jewelry")
-                .color(ColorScheme.BRAND_ORANGE) // Use standard RuneLite Orange for branding
+                .color(ColorScheme.BRAND_ORANGE)
                 .build());
 
-        // 2. Create a Table for perfect alignment (2 columns)
-        TableComponent tableComponent = new TableComponent();
-        tableComponent.setColumnAlignments(TableAlignment.LEFT, TableAlignment.RIGHT);
+        TableComponent table = new TableComponent();
+        table.setColumnAlignments(TableAlignment.LEFT, TableAlignment.RIGHT);
 
-        // 3. Add rows to the table
-        // Format: Label (Gray/Orange) | Value (White/Green)
-        addRow(tableComponent, "Status:", plugin.getStatus(), Color.WHITE);
-        addRow(tableComponent, "Runtime:", plugin.getRuntime(), Color.WHITE);
+        table.addRow("Status:", plugin.getStatus());
+        table.addRow("Runtime:", plugin.getRuntime());
+        table.addRow("Crafted:", String.valueOf(plugin.getMetrics().getNecklacesCrafted()));
+        table.addRow("Est Profit:", formatProfit(plugin.getMetrics().getEstimatedProfit()));
+        table.addRow("Gold Bars:", String.valueOf(plugin.getMetrics().getGoldBarsRemaining()));
+        table.addRow("Gems:", String.valueOf(plugin.getMetrics().getGemsRemaining()));
 
-        // Add a spacer row if you want visual separation
-        // tableComponent.addRow("", "");
-
-        addRow(tableComponent, "Crafted:", String.valueOf(plugin.getMetrics().getNecklacesCrafted()), ColorScheme.GRAND_EXCHANGE_PRICE);
-
-        // Use your formatting helper here
-        String profit = formatProfit(plugin.getMetrics().getEstimatedProfit());
-        addRow(tableComponent, "Est Profit:", profit, Color.GREEN);
-
-        addRow(tableComponent, "Gold Bars:", String.valueOf(plugin.getMetrics().getGoldBarsRemaining()), Color.WHITE);
-        addRow(tableComponent, "Gems:", String.valueOf(plugin.getMetrics().getGemsRemaining()), Color.WHITE);
-
-        // 4. Add the table to the panel
-        panelComponent.getChildren().add(tableComponent);
+        panelComponent.getChildren().add(table);
 
         return super.render(graphics);
-    }
-
-    /**
-     * Helper to add a row to the table with consistent coloring
-     */
-    private void addRow(TableComponent table, String label, String value, Color valueColor) {
-        table.addRow(label, value);
-
-        // Set the color of the last added row's elements
-        // The table stores elements as RenderableEntity, so we color the last two added (Label, Value)
-        int lastRowIndex = table.getRows().size() - 1;
     }
 
     private String formatProfit(long profit) {

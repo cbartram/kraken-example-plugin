@@ -1,6 +1,5 @@
 package com.krakenplugins.example.jewelry.script.state;
 
-import com.kraken.api.Context;
 import com.kraken.api.core.script.AbstractTask;
 import com.kraken.api.query.container.bank.BankEntity;
 import com.kraken.api.query.container.inventory.InventoryEntity;
@@ -25,6 +24,12 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class PurchaseSuppliesTask extends AbstractTask {
 
+    // How long an offer gets to fill before it is cancelled and collected back.
+    private static final long OFFER_TIMEOUT_MS = 120000;
+
+    // How long an interface has to open or close before the trip gives up on it.
+    private static final long INTERFACE_TIMEOUT_MS = 5000;
+
     @Inject
     private GrandExchangeService geService;
 
@@ -35,15 +40,11 @@ public class PurchaseSuppliesTask extends AbstractTask {
     private JewelryPlugin plugin;
 
     @Inject
-    private Context ctx;
-
-    @Inject
     private JewelryConfig config;
 
     @Inject
     private ItemPriceService itemPriceService;
 
-    private long lastPurchaseAttemptTime = -1;
     private int bankGoldBars = 0;
     private int bankGems = 0;
 
@@ -53,20 +54,10 @@ public class PurchaseSuppliesTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        if (lastPurchaseAttemptTime != -1 && System.currentTimeMillis() - lastPurchaseAttemptTime > 50000) {
-            log.info("Resetting GE Purchase Attempt Time");
-            lastPurchaseAttemptTime = -1;
-            return false;
-        }
-
-        return ctx.players().local().isInArea(plugin.getGrandExchange()) &&
-                lastPurchaseAttemptTime == -1 &&
-                !purchaseComplete &&
-                config.enableResupply();
+        return config.enableResupply()
+                && !purchaseComplete
+                && ctx.players().local().isInArea(plugin.getGrandExchange());
     }
-
-// Option=Enable <col=ff9040>Notes, Target=, Param0=-1, Param1=786451, MenuAction=CC_OP, ItemId=-1, id=1, itemOp=-1, str=MenuOptionClicked(getParam0=-1, getParam1=786451, getMenuOption=Enable <col=ff9040>Notes, getMenuTarget=, getMenuAction=CC_OP, getId=1)
-//Option=Disable <col=ff9040>Notes, Target=, Param0=-1, Param1=786451, MenuAction=CC_OP, ItemId=-1, id=1, itemOp=-1, str=MenuOptionClicked(getParam0=-1, getParam1=786451, getMenuOption=Disable <col=ff9040>Notes, getMenuTarget=, getMenuAction=CC_OP, getId=1)
 
     @Override
     public int execute() {
@@ -74,54 +65,56 @@ public class PurchaseSuppliesTask extends AbstractTask {
         try {
             // 1. Prepare Bank: Check supplies, withdraw crafted items to sell, withdraw coins
             if (!prepareBank()) {
-                log.error("Failed to prepare bank");
                 return 600;
             }
 
             NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest();
-            if (clerk == null) {
-                log.error("Could not find Grand Exchange Clerk");
-                return 600;
+            if (clerk == null || !clerk.interact("Exchange")) {
+                plugin.halt("No Grand Exchange clerk to trade with");
+                return 0;
             }
 
-            // 2. Open GE
-            if (!clerk.interact("Exchange")) {
-                log.error("Failed to interact with Grand Exchange Clerk");
+            if (!SleepService.sleepUntil(geService::isOpen, INTERFACE_TIMEOUT_MS)) {
+                log.info("The Grand Exchange did not open, retrying");
                 return 600;
             }
-
-            SleepService.sleepUntil(geService::isOpen, 5000);
 
             // Wait several ticks before attempting to sell
             SleepService.sleepFor(3);
             sellCraftedItems();
             buySupplies();
-            depositAll();
 
-            lastPurchaseAttemptTime = System.currentTimeMillis();
+            if (!depositAndVerify()) {
+                plugin.halt("The Grand Exchange trip finished without stocking the bank");
+                return 0;
+            }
+
             purchaseComplete = true;
-            return 0;
+            return 600;
         } catch (Exception e) {
             log.error("Failed to resupply: ", e);
-        } finally {
-            lastPurchaseAttemptTime = System.currentTimeMillis();
+            return 600;
         }
-        return 0;
     }
 
+    /**
+     * Empties the inventory into the bank, counts what is in stock and takes out the crafted jewelry
+     * to sell.
+     *
+     * @return true when the trip should go on to buy, false when there is nothing left to do here.
+     *         Anything the trip cannot recover from halts the script instead.
+     */
     private boolean prepareBank() {
         NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
-        if (banker == null) {
-            log.error("Cannot find banker");
+        if (banker == null || !banker.interact("Bank")) {
+            plugin.halt("No Grand Exchange banker to bank with");
             return false;
         }
 
-        if (!banker.interact("Bank")) {
-            log.error("Failed to interact with banker");
+        if (!SleepService.sleepUntil(bankService::isOpen, INTERFACE_TIMEOUT_MS)) {
+            log.info("The bank did not open, retrying");
             return false;
         }
-
-        SleepService.sleepUntil(bankService::isOpen, 5000);
 
         if (!ctx.inventory().isEmpty()) {
             bankService.depositAll();
@@ -135,60 +128,46 @@ public class PurchaseSuppliesTask extends AbstractTask {
         BankEntity gems = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
         bankGems = gems != null ? gems.count() : 0;
 
-        // If we have items in the bank set purchase complete to true and close the bank
-        // this will move to the Walk to edgeville task.
-        if(bankGoldBars > 0 && bankGems > 0) {
+        // Another trip already stocked the bank, so head home rather than buying more.
+        if (bankGoldBars > 0 && bankGems > 0) {
+            closeBank();
             purchaseComplete = true;
-            bankService.close();
-            SleepService.sleepUntil(() -> !bankService.isOpen(), 3000);
-            return false; // Return false so that it "fails" this and doesn't go and try to purchase stuff
+            return false;
         }
 
-        // Withdraw crafted jewelry (Noted)
-        int craftedId = config.jewelry().getCraftedItemId();
-        BankEntity crafted = ctx.bank().withId(craftedId).first();
+        // Withdraw crafted jewelry to sell. Noted, so a full trip's worth fits in one slot.
+        BankEntity crafted = ctx.bank().withId(config.jewelry().getCraftedItemId()).first();
         if (crafted != null && crafted.count() > 0) {
-            bankService.setWithdrawMode(true);
-            SleepService.sleepFor(3);
-            crafted.withdrawAll();
+            crafted.withdrawAllNoted();
             SleepService.sleepFor(1);
         }
 
-        bankService.close();
-        SleepService.sleepUntil(() -> !bankService.isOpen(), 3000);
+        closeBank();
         return true;
     }
 
-
     private void sellCraftedItems() {
-        int craftedId = config.jewelry().getCraftedItemId();
-        int notedCraftedId = craftedId + 1;
-        InventoryEntity craftedItem = ctx.inventory().withId(notedCraftedId).first();
-
-        if (craftedItem != null) {
-            int price = getMinSellPrice(craftedId).join();
-
-            if (price <= 0) {
-                log.error("Invalid sell price returned (0), aborting sell.");
-                return;
-            }
-
-            GrandExchangeSlot slot = geService.queueSellOrder(notedCraftedId, price);
-            if (slot != null) {
-                log.info("Selling {} {}@{}", craftedItem.raw().getQuantity(), config.jewelry().name(), price);
-                while(!slot.isFulfilled()) {
-                    SleepService.tick();
-                }
-
-                SleepService.sleepFor(1);
-                geService.collect(slot, false);
-                SleepService.sleepFor(1);
-            } else {
-                log.info("GE Slot is null, ensure there is a free slot available");
-            }
-        } else {
+        // Noted and unnoted share a name but not an id, so the item's own id is what the offer needs.
+        InventoryEntity crafted = ctx.inventory().withName(config.jewelry().getNecklaceName()).noted().first();
+        if (crafted == null) {
             log.info("No crafted items in inventory to sell.");
+            return;
         }
+
+        int price = getMinSellPrice(config.jewelry().getCraftedItemId()).join();
+        if (price <= 0) {
+            log.error("Invalid sell price returned (0), aborting sell.");
+            return;
+        }
+
+        GrandExchangeSlot slot = geService.queueSellOrder(crafted.getId(), price);
+        if (slot == null) {
+            log.info("GE Slot is null, ensure there is a free slot available");
+            return;
+        }
+
+        log.info("Selling {} {}@{}", crafted.raw().getQuantity(), config.jewelry().name(), price);
+        collectOrCancel(waitForOffer(slot), false);
     }
 
     private void buySupplies() {
@@ -271,62 +250,78 @@ public class PurchaseSuppliesTask extends AbstractTask {
             SleepService.sleepFor(3);
         }
 
-        // Wait for fulfillment
-        long start = System.currentTimeMillis();
-        long timeout = 120000; // 2 minutes
-
-        while (System.currentTimeMillis() - start < timeout) {
-            boolean goldComplete = (goldSlot == null || goldSlot.isFulfilled());
-            boolean gemComplete = (gemSlot == null || gemSlot.isFulfilled());
-
-            if (goldComplete && gemComplete) {
-                log.info("Both orders fulfilled successfully");
-                break;
-            }
-
-            SleepService.sleep(500);
-        }
-
-        // Check final status
-        boolean goldFulfilled = (goldSlot == null || goldSlot.isFulfilled());
-        boolean gemFulfilled = (gemSlot == null || gemSlot.isFulfilled());
-
-        if (!goldFulfilled || !gemFulfilled) {
-            log.warn("Orders timed out - Gold: {}, Gems: {}", goldFulfilled, gemFulfilled);
-        }
-
-        // Collect or cancel orders
-        if (goldSlot != null) {
-            if (!goldSlot.isFulfilled()) {
-                log.info("Cancelling unfulfilled gold bar order");
-                geService.cancelOffer(goldSlot);
-                SleepService.sleepFor(2);
-            }
-            geService.collect(goldSlot, true);
-            SleepService.sleepFor(1);
-        }
-
-        if (gemSlot != null) {
-            if (!gemSlot.isFulfilled()) {
-                log.info("Cancelling unfulfilled gem order");
-                geService.cancelOffer(gemSlot);
-                SleepService.sleepFor(2);
-            }
-            geService.collect(gemSlot, true);
-            SleepService.sleepFor(1);
-        }
+        collectOrCancel(waitForOffer(goldSlot), true);
+        collectOrCancel(waitForOffer(gemSlot), true);
     }
 
-    private void depositAll() {
+    /**
+     * Waits for an offer to fill, giving up after {@link #OFFER_TIMEOUT_MS} so a price the market
+     * will not take cannot park the script.
+     *
+     * @param slot The slot the offer was placed in, or {@code null} when no offer was placed.
+     * @return The same slot, so this can be chained into {@link #collectOrCancel}.
+     */
+    private GrandExchangeSlot waitForOffer(GrandExchangeSlot slot) {
+        if (slot != null && !SleepService.sleepUntil(slot::isFulfilled, OFFER_TIMEOUT_MS)) {
+            log.warn("The offer in slot {} did not fill within {}ms", slot.getSlot(), OFFER_TIMEOUT_MS);
+        }
+        return slot;
+    }
+
+    /**
+     * Takes an offer back out of the Grand Exchange, aborting it first if it never filled.
+     *
+     * @param slot The slot to collect, or {@code null} when no offer was placed.
+     * @param noted True to collect the items as notes.
+     */
+    private void collectOrCancel(GrandExchangeSlot slot, boolean noted) {
+        if (slot == null) {
+            return;
+        }
+
+        if (!slot.isFulfilled()) {
+            log.info("Cancelling the unfilled offer in slot {}", slot.getSlot());
+            geService.cancelOffer(slot);
+            SleepService.sleepFor(2);
+        }
+
+        geService.collect(slot, noted);
+        SleepService.sleepFor(1);
+    }
+
+    /**
+     * Banks everything the trip came back with.
+     *
+     * @return true when the bank now holds both materials, which is the only outcome that lets the
+     *         script go home and craft.
+     */
+    private boolean depositAndVerify() {
         NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
-        if (banker != null && banker.interact("Bank")) {
-            SleepService.sleepUntil(bankService::isOpen, 5000);
-            if (bankService.isOpen()) {
-                bankService.depositAll();
-                bankService.close();
-            }
+        if (banker == null || !banker.interact("Bank")) {
+            log.error("Could not reach a banker to deposit the purchase into");
+            return false;
         }
+
+        if (!SleepService.sleepUntil(bankService::isOpen, INTERFACE_TIMEOUT_MS)) {
+            log.error("The bank did not open to deposit the purchase into");
+            return false;
+        }
+
+        bankService.depositAll();
+        SleepService.sleepFor(1);
+
+        boolean stocked = ctx.bank().withId(JewelryScript.GOLD_BAR).first() != null
+                && ctx.bank().withId(config.jewelry().getSecondaryGemId()).first() != null;
+
+        closeBank();
+        return stocked;
     }
+
+    private void closeBank() {
+        bankService.close();
+        SleepService.sleepUntil(bankService::isClosed, INTERFACE_TIMEOUT_MS);
+    }
+
     /**
      * Async calculation of Max Buy Price.
      * Returns a Future that will eventually contain the calculated price.
@@ -339,7 +334,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
         itemPriceService.getItemPrice(itemId, "ItemPriceAPI/1.0", (price) -> {
             if (price == null) {
                 log.error("Failed to lookup buy price for item: {}", itemId);
-                future.complete(1); // Default safety value
+                future.complete(0); // Zero aborts the buy rather than offering a nominal price
                 return;
             }
 
@@ -352,7 +347,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
                 future.complete(finalPrice);
             } catch (Exception e) {
                 log.error("Error calculating buy price for item {}", itemId, e);
-                future.complete(1); // Default safety value
+                future.complete(0);
             }
         });
 

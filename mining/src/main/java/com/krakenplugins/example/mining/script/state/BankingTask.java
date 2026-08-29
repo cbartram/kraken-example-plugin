@@ -45,6 +45,17 @@ public class BankingTask extends AbstractTask {
             return 600;
         }
 
+        BankInventoryEntity gem;
+        while ((gem = ctx.bankInventory().nameContains("Uncut").first()) != null) {
+            final int before = ctx.inventory().nameContains("Uncut").list().size();
+            plugin.moveMouseTo(gem.raw());
+            gem.depositAll();
+            if (!SleepService.sleepUntil(() -> ctx.inventory().nameContains("Uncut").list().size() < before, DEPOSIT_TIMEOUT_MS)) {
+                log.info("Uncut gems still in the inventory after depositing, retrying");
+                return 600;
+            }
+        }
+
         // The next task walks off to the mine, so leave the interface closed behind us.
         bankService.close();
         SleepService.sleepUntil(bankService::isClosed, DEPOSIT_TIMEOUT_MS);
