@@ -3,42 +3,29 @@ package com.krakenplugins.example.fishing.script.state.karamja;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.script.PriorityTask;
-import com.kraken.api.service.movement.MovementService;
-import com.kraken.api.service.movement.VariableStrideConfig;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
+import com.kraken.api.service.walker.Walker;
 import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.coords.WorldPoint;
+import com.krakenplugins.example.fishing.script.FishingLocation;
 
 import java.util.List;
 
-import static com.krakenplugins.example.fishing.script.state.karamja.WalkToDocks.KARAMJA_DOCKS;
-
-@Slf4j
 @Singleton
 public class WalkToMusaPoint extends PriorityTask {
 
-    private static final WorldPoint MUSA_POINT = new WorldPoint(2924, 3179, 0);
+    private static final String DESTINATION = "Musa Point";
 
-    private final FishingConfig config;
-    private final GlobalPathfinder pathfinder;
-    private final MovementService movementService;
-    private final FishingPlugin plugin;
-
-    private boolean isTraversing = false;
-    private final VariableStrideConfig strideConfig = VariableStrideConfig
-            .builder()
-            .tileDeviation(true)
-            .build();
+    /** Inside FishKaramja's fishing radius, so arriving hands straight over to it. */
+    private static final int ARRIVAL_RADIUS = 8;
 
     @Inject
-    public WalkToMusaPoint(FishingPlugin plugin, FishingConfig config, GlobalPathfinder pathfinder, MovementService movementService) {
-        this.config = config;
-        this.plugin = plugin;
-        this.pathfinder = pathfinder;
-        this.movementService = movementService;
-    }
+    private FishingConfig config;
+
+    @Inject
+    private FishingPlugin plugin;
+
+    @Inject
+    private Walker walker;
 
     @Override
     public int getPriority() {
@@ -47,51 +34,18 @@ public class WalkToMusaPoint extends PriorityTask {
 
     @Override
     public boolean validate() {
-        // Keep task alive while actively traversing
-        if (isTraversing) {
-            return true;
-        }
-
-        boolean hasSpace = !ctx.inventory().isFull();
         List<Integer> fishIds = config.fishingLocation().getFishIds();
-        boolean hasNoFish = ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() == 0;
-        boolean playerInKaramja = ctx.players().local().location().distanceTo(KARAMJA_DOCKS) <= 7;
-
-        return hasSpace &&
-                hasNoFish &&
-                playerInKaramja &&
-                config.bankFishKaramja();
+        return config.bankFishKaramja() &&
+                !ctx.inventory().isFull() &&
+                ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() == 0 &&
+                !ctx.players().local().isInArea(FishingLocation.KARAMJA.getLocation(), ARRIVAL_RADIUS);
     }
 
     @Override
     public int execute() {
-        WorldPoint playerLocation = ctx.players().local().location();
-        if (playerLocation.distanceTo(MUSA_POINT) <= 7) {
-            isTraversing = false;
-            return 1000;
-        }
-
-        isTraversing = true;
-
-        try {
-            List<WorldPoint> directPath = pathfinder.findPath(playerLocation, MUSA_POINT);
-
-            if (directPath != null && !directPath.isEmpty()) {
-                log.info("Direct path found to: MUSA_POINT.");
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath, strideConfig);
-                movementService.traversePath(ctx.getClient(), stridedPath);
-                return 600;
-            }
-
-            log.error("Failed to generate any path");
-            isTraversing = false;
-            return 1000;
-
-        } catch (Exception e) {
-            log.error("Error during walk to Musa Point", e);
-            isTraversing = false;
-            return 1000;
-        }
+        // The return leg of the same trip, ferry included.
+        plugin.reportWalk(DESTINATION, walker.walkTo(FishingLocation.KARAMJA.getLocation()));
+        return 600;
     }
 
     @Override

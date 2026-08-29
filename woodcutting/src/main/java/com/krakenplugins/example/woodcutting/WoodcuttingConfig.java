@@ -88,7 +88,7 @@ public interface WoodcuttingConfig extends Config {
 	@ConfigItem(
 			keyName = "treeName",
 			name = "Tree Name",
-			description = "Configures the script to search for tress of this type to chop.",
+			description = "The exact in-game name of the tree to chop, for example \"Willow tree\".",
 			position = 1,
 			section = tree
 	)
@@ -127,7 +127,7 @@ public interface WoodcuttingConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName = "showTreeRaadius",
+		keyName = "showTreeRadius",
 		name = "Show Tree Radius",
 		description = "Shows the radius of choppable trees from the players location.",
 		position = 2,

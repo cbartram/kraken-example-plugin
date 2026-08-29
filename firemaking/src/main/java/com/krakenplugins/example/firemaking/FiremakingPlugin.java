@@ -16,11 +16,13 @@ import com.krakenplugins.example.firemaking.script.FiremakingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.NPC;
 import net.runelite.api.Skill;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.StatChanged;
 import net.runelite.client.callback.ClientThread;
@@ -30,8 +32,11 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.Text;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -51,6 +56,12 @@ public class FiremakingPlugin extends Plugin {
      * treated as stalled. Roughly 10 seconds, which comfortably covers the slowest log burn.
      */
     private static final int STALL_TICKS = 16;
+
+    /**
+     * Fragment of "You can't light a fire here.", the server's rejection when a tile does not allow
+     * fires. Matched as a substring so wording changes around it do not break the check.
+     */
+    private static final String NO_FIRE_MESSAGE = "light a fire here";
 
     @Getter
     private volatile GameArea bankLocation;
@@ -102,6 +113,15 @@ public class FiremakingPlugin extends Plugin {
     /** Firemaking xp at the last {@link StatChanged}, used to tell a real xp drop from the login event. */
     private int lastFiremakingXp = -1;
 
+    /**
+     * Tiles the server has refused to light a fire on. Learned at runtime rather than hardcoded, since
+     * which tiles reject fires varies by area. Written from the client thread, read from the script
+     * thread. Entries are never expired: a tile that rejected a fire once is treated as permanently bad
+     * for the session, which is fine because the search below has plenty of alternatives.
+     */
+    @Getter
+    private final Set<WorldPoint> unlightableTiles = ConcurrentHashMap.newKeySet();
+
     private long startTime;
 
     @Provides
@@ -124,6 +144,7 @@ public class FiremakingPlugin extends Plugin {
         lastActionTick = -1;
         lastFiremakingXp = -1;
         startTime = System.currentTimeMillis();
+        unlightableTiles.clear();
 
         applyMouseConfig();
 
@@ -177,6 +198,28 @@ public class FiremakingPlugin extends Plugin {
     }
 
     @Subscribe
+    private void onChatMessage(ChatMessage event) {
+        // Server messages only, so another player cannot poison the blacklist by saying this out loud.
+        if (event.getType() != ChatMessageType.GAMEMESSAGE
+                && event.getType() != ChatMessageType.ENGINE
+                && event.getType() != ChatMessageType.SPAM) {
+            return;
+        }
+
+        if (!Text.removeTags(event.getMessage()).toLowerCase().contains(NO_FIRE_MESSAGE)) {
+            return;
+        }
+
+        WorldPoint tile = ctx.players().local().location();
+        if (tile != null && unlightableTiles.add(tile)) {
+            log.info("{} does not allow fires, {} tile(s) now excluded", tile, unlightableTiles.size());
+        }
+
+        // The attempt failed, so drop the busy stamp and let the script pick a new spot immediately.
+        lastActionTick = -1;
+    }
+
+    @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
         // Covers enabling the plugin while logged out; start() is a no-op when already running.
         if (event.getGameState() == GameState.LOGGED_IN) {
@@ -190,6 +233,13 @@ public class FiremakingPlugin extends Plugin {
      */
     public void markAction() {
         lastActionTick = ctx.getClient().getTickCount();
+    }
+
+    /**
+     * True when the server has already told us a fire cannot be lit on this tile.
+     */
+    public boolean isUnlightable(WorldPoint tile) {
+        return tile != null && unlightableTiles.contains(tile);
     }
 
     /**

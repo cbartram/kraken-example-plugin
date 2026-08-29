@@ -8,11 +8,16 @@ import com.kraken.api.service.bank.BankService;
 import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.mining.MiningPlugin;
+import lombok.extern.slf4j.Slf4j;
 
-import static com.krakenplugins.example.mining.MiningPlugin.BANK_BOOTH_GAME_OBJECT;
+import static com.krakenplugins.example.mining.MiningPlugin.BANK_BOOTH;
 
+@Slf4j
 @Singleton
 public class OpenBankTask extends AbstractTask {
+
+    // How long the booth has to answer a click before the loop clicks it again.
+    private static final long OPEN_TIMEOUT_MS = 10000;
 
     @Inject
     private BankService bankService;
@@ -25,17 +30,29 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        return ctx.players().local().isInArea(plugin.getVarrockBank()) && ctx.inventory().isFull();
+        return !bankService.isOpen()
+                && ctx.inventory().isFull()
+                && ctx.players().local().isInArea(plugin.getVarrockBank());
     }
 
     @Override
     public int execute() {
         globalPathfinder.clearLastResult();
-        GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH_GAME_OBJECT).nearest();
-        ctx.getMouse().move(booth.raw());
-        booth.interact("Bank");
-        SleepService.sleepUntil(() -> bankService.isOpen(), 10000);
-        return 500;
+
+        GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH).nearest();
+        if (booth == null) {
+            plugin.halt("Standing in the Varrock east bank with no bank booth in the scene");
+            return 0;
+        }
+
+        plugin.moveMouseTo(booth.raw());
+        if (!booth.interact("Bank")) {
+            log.info("Bank action was not available on the booth at {}", booth.raw().getWorldLocation());
+            return 600;
+        }
+
+        SleepService.sleepUntil(bankService::isOpen, OPEN_TIMEOUT_MS);
+        return 600;
     }
 
     @Override

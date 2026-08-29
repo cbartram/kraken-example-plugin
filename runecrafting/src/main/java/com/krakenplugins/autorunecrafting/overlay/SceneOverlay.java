@@ -4,11 +4,10 @@ package com.krakenplugins.autorunecrafting.overlay;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
-import com.kraken.api.query.gameobject.GameObjectEntity;
-import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
 import net.runelite.api.Client;
+import net.runelite.api.GameObject;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -24,15 +23,13 @@ public class SceneOverlay extends Overlay {
     private final Context ctx;
     private final AutoRunecraftingConfig config;
     private final ModelOutlineRenderer modelOutlineRenderer;
-    private final LocalPathfinder localPathfinder;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, AutoRunecraftingPlugin plugin, AutoRunecraftingConfig config, ModelOutlineRenderer modelOutlineRenderer, LocalPathfinder localPathfinder) {
+    public SceneOverlay(Client client, Context ctx, AutoRunecraftingPlugin plugin, AutoRunecraftingConfig config, ModelOutlineRenderer modelOutlineRenderer) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
         this.config = config;
-        this.localPathfinder = localPathfinder;
         this.modelOutlineRenderer = modelOutlineRenderer;
 
         this.setPosition(OverlayPosition.DYNAMIC);
@@ -49,10 +46,6 @@ public class SceneOverlay extends Overlay {
             renderDebug(graphics);
         }
 
-        if(config.showCurrentPath()) {
-            localPathfinder.renderPath(plugin.getCurrentPath(), graphics, new Color(24, 191, 243));
-        }
-
         if(config.targetBankBooth()) {
             renderTargetBankBooth();
         }
@@ -61,9 +54,9 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderTargetBankBooth() {
-        GameObjectEntity booth = plugin.getTargetBankBooth();
-        if(booth != null && booth.raw() != null) {
-            modelOutlineRenderer.drawOutline(booth.raw(), 2, Color.GREEN, 2);
+        GameObject booth = plugin.getTargetBankBooth();
+        if(booth != null) {
+            modelOutlineRenderer.drawOutline(booth, 2, Color.GREEN, 2);
         }
     }
 

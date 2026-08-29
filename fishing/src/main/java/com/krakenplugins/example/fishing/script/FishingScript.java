@@ -2,6 +2,7 @@ package com.krakenplugins.example.fishing.script;
 
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.core.script.Script;
 import com.kraken.api.core.script.Task;
@@ -22,9 +23,11 @@ import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
+@Singleton
 public class FishingScript extends Script {
 
-    private List<PriorityTask> tasks = new ArrayList<>();
+    // Replaced from the client thread when the location config changes, read from the script thread.
+    private volatile List<PriorityTask> tasks = new ArrayList<>();
 
     private final FishingConfig config;
     private final DropFish dropFish;
@@ -32,10 +35,8 @@ public class FishingScript extends Script {
     private final FishBarbarianVillage fishBarbarianVillage;
     private final FishDraynor fishDraynor;
     private final CookFish cookFish;
-    private final WalkToDocks walkToDocks;
     private final TravelPortSarim travelPortSarim;
     private final BankDepositBox bankDepositBox;
-    private final TravelKaramja travelKaramja;
     private final WalkToMusaPoint walkToMusaPoint;
     private final BankCorsairCove bankCorsairCove;
     private final FishCorsair fishCorsair;
@@ -44,12 +45,12 @@ public class FishingScript extends Script {
 
 
     @Getter
-    private String status = "Initializing";
+    private volatile String status = "Initializing";
 
     @Inject
     public FishingScript(final FishingConfig config, final DropFish dropFish, final FishKaramja fishKaramja, final FishBarbarianVillage fishBarbarianVillage,
-                         final FishDraynor fishDraynor, final CookFish cookFish, final WalkToDocks walkToDocks, final TravelPortSarim travelPortSarim,
-                         final BankDepositBox bankDepositBox, final TravelKaramja travelKaramja, final WalkToMusaPoint walkToMusaPoint,
+                         final FishDraynor fishDraynor, final CookFish cookFish, final TravelPortSarim travelPortSarim,
+                         final BankDepositBox bankDepositBox, final WalkToMusaPoint walkToMusaPoint,
                          final BankCorsairCove bankCorsairCove, final FishCorsair fishCorsair, final WalkToCorsairBank walkToCorsairBank, final WalkToResourceArea walkToResourceArea) {
         this.config = config;
         this.dropFish = dropFish;
@@ -57,10 +58,8 @@ public class FishingScript extends Script {
         this.fishBarbarianVillage = fishBarbarianVillage;
         this.fishDraynor = fishDraynor;
         this.cookFish = cookFish;
-        this.walkToDocks = walkToDocks;
         this.travelPortSarim = travelPortSarim;
         this.bankDepositBox = bankDepositBox;
-        this.travelKaramja = travelKaramja;
         this.walkToMusaPoint = walkToMusaPoint;
         this.bankCorsairCove = bankCorsairCove;
         this.fishCorsair = fishCorsair;
@@ -80,14 +79,10 @@ public class FishingScript extends Script {
                 break;
             case KARAMJA:
                 tasks.add(fishKaramja);
-                // Safe to add this same as the reason for cook fish task in barb village. We don't do the check for if
-                // the user has selected config for banking fish here because any time the config is updated we would need to
-                // receive that event and re-compute the tasks to add based on the new config. It's just simpler to keep the config
-                // in the validate() method since its called so often it will instantly pickup config changes.
-                tasks.add(walkToDocks);
+                // The banking tasks are always added. Reading the bank config inside validate() rather
+                // than here means a config change is picked up on the next loop with no rebuild.
                 tasks.add(travelPortSarim);
                 tasks.add(bankDepositBox);
-                tasks.add(travelKaramja);
                 tasks.add(walkToMusaPoint);
                 break;
             case CORSAIR_COVE:
@@ -97,8 +92,7 @@ public class FishingScript extends Script {
                 tasks.add(bankCorsairCove);
                 break;
             case BARBARIAN_VILLAGE:
-                // Safe to always add cook fish task regardless of user config since the activate() method checks
-                // config before executing cook fish task.
+                // Cook fish is always added; it reads the cook config inside validate().
                 tasks.add(fishBarbarianVillage);
                 tasks.add(cookFish);
                 break;
@@ -106,8 +100,16 @@ public class FishingScript extends Script {
                 break;
         }
 
+        tasks.sort(Comparator.comparingInt(PriorityTask::getPriority));
         this.tasks = tasks;
-        this.tasks.sort(Comparator.comparingInt(PriorityTask::getPriority));
+    }
+
+    /**
+     * Pauses the loop and leaves the reason on the overlay in place of the current task's status.
+     */
+    public void pause(String reason) {
+        status = reason;
+        pause();
     }
 
     @Override

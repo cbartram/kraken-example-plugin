@@ -11,10 +11,13 @@ import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
 import com.krakenplugins.example.fishing.script.FishingLocation;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.gameval.ItemID;
 
 @Slf4j
 @Singleton
 public class FishCorsair extends PriorityTask {
+
+    private static final int FISHING_RADIUS = 12;
 
     @Inject
     private FishingPlugin plugin;
@@ -27,35 +30,37 @@ public class FishCorsair extends PriorityTask {
 
     @Override
     public boolean validate() {
-        if (!ctx.inventory().hasItem(311) && !ctx.inventory().hasItem(301)) {
-            log.error("Player does not have a harpoon or lobster pot. Nothing to fish with.");
-            return false;
-        }
-        return ctx.players().local().isInArea(FishingLocation.CORSAIR_COVE.getLocation(), 12) &&
+        return ctx.players().local().isInArea(FishingLocation.CORSAIR_COVE.getLocation(), FISHING_RADIUS) &&
                 ctx.players().local().isIdle() &&
                 !ctx.inventory().isFull();
     }
 
     @Override
     public int execute() {
-        NpcEntity spot = ctx.npcs().withId(FishingLocation.CORSAIR_COVE.getSpotId()).nearest();
-        if (spot != null) {
-            pathfinder.clearLastResult();
-            plugin.setTargetSpot(spot);
+        if (!ctx.inventory().hasItem(ItemID.HARPOON) && !ctx.inventory().hasItem(ItemID.LOBSTER_POT)) {
+            plugin.pauseScript("No harpoon or lobster pot in the inventory");
+            return 0;
+        }
 
-            if (config.useMouse()) {
-                ctx.getMouse().move(spot.raw());
-            }
-            log.info("Finding new fishing spot...");
-            if (spot.interact(config.fishingMethod().getInteractionName())) {
-                SleepService.sleepUntil(
-                        () -> ctx.players().local().isMoving()
-                                || ctx.players().local().raw().getAnimation() != -1,
-                        5000
-                );
-            }
-        } else {
+        NpcEntity spot = ctx.npcs().withId(FishingLocation.CORSAIR_COVE.getSpotId()).nearest();
+        if (spot == null) {
             plugin.setTargetSpot(null);
+            log.info("No spot found.");
+            return RandomService.between(1200, 1800);
+        }
+
+        // The walk is over, so drop the route the pathfinder overlay is still drawing.
+        pathfinder.clearLastResult();
+        plugin.setTargetSpot(spot);
+
+        if (config.useMouse()) {
+            ctx.getMouse().move(spot.raw());
+        }
+
+        log.info("Finding new fishing spot...");
+        if (spot.interact(config.fishingMethodCorsair().getInteractionName())
+                && !SleepService.sleepUntil(() -> !ctx.players().local().isIdle(), 5000)) {
+            log.info("Clicked the fishing spot but never started fishing.");
         }
         return RandomService.between(1200, 1800);
     }

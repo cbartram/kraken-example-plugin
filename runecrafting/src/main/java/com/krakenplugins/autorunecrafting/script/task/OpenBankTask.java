@@ -10,11 +10,16 @@ import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
 import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.*;
+import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.hasEssence;
 
 @Slf4j
 @Singleton
 public class OpenBankTask extends AbstractTask {
+
+    private static final String BANK_ACTION = "Bank";
+
+    /** Long enough to cover the walk to the booth the click starts. */
+    private static final long OPEN_TIMEOUT_MS = 8_000L;
 
     @Inject
     private BankService bankService;
@@ -27,27 +32,44 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        boolean bankBoothPresent = ctx.gameObjects().withId(BANK_BOOTH_ID).nearest() != null;
-        return (!ctx.inventory().hasItem(RUNE_ESSENCE) && !ctx.inventory().hasItem(PURE_ESSENCE))
-                && ctx.players().local().isIdle() && !bankService.isOpen() && bankBoothPresent;
+        // Matching the action rather than a loc id reads the impostor-resolved composition, so it
+        // finds the booth whichever variant of the deadman multiloc the scene holds. reachable() is
+        // what hands the trip back to WalkToBankTask when the booths are in view but not in reach.
+        // The scene scan goes last, it is the expensive check.
+        return !bankService.isOpen()
+                && ctx.players().local().isIdle()
+                && !hasEssence(ctx)
+                && ctx.gameObjects().withAction(BANK_ACTION).reachable().isPresent();
     }
 
     @Override
     public int execute() {
-        GameObjectEntity bankBooth = ctx.gameObjects().withId(BANK_BOOTH_ID).sortByDistance().random();
+        GameObjectEntity bankBooth = ctx.gameObjects().withAction(BANK_ACTION).reachable().nearest();
 
-        if(bankBooth != null) {
-            if(config.useMouse()) {
-                ctx.getMouse().move(bankBooth.raw());
-            }
-
-            plugin.setTargetBankBooth(bankBooth);
-            bankBooth.interact("Bank");
-            SleepService.sleepUntil(() -> bankService.isOpen(), 8000);
-        } else {
-            log.info("Bank booth entity not found ");
+        if (bankBooth == null) {
+            log.info("No reachable bank booth found");
+            return 600;
         }
-        return 0;
+
+        if (config.useMouse()) {
+            ctx.getMouse().move(bankBooth.raw());
+        }
+
+        if (!bankBooth.interact(BANK_ACTION)) {
+            log.warn("Bank action was not available on the booth");
+            return 600;
+        }
+
+        plugin.setTargetBankBooth(bankBooth.raw());
+        SleepService.sleepUntil(() -> bankService.isOpen() || bankService.isPinOpen(), OPEN_TIMEOUT_MS);
+
+        // Nothing else in this script can dismiss the pin interface, and retrying the booth behind it
+        // would just spin forever.
+        if (bankService.isPinOpen()) {
+            plugin.pauseScript("Bank pin interface is open, enter it and re-enable the plugin");
+        }
+
+        return 600;
     }
 
     @Override

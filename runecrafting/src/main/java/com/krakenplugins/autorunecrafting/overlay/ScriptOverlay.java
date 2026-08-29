@@ -42,14 +42,4 @@ public class ScriptOverlay extends OverlayPanel {
 
         return super.render(graphics);
     }
-
-    private String formatProfit(long profit) {
-        if (profit < 1000) {
-            return String.valueOf(profit);
-        } else if (profit < 1000000) {
-            return (profit / 1000) + "k";
-        } else {
-            return (profit / 1000000) + "m";
-        }
-    }
 }

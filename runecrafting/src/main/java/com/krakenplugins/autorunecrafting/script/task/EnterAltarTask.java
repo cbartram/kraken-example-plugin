@@ -23,20 +23,31 @@ public class EnterAltarTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        GameObjectEntity altar = ctx.gameObjects().withId(AIR_ALTAR).first();
-        boolean hasEssence = ctx.inventory().hasItem(PURE_ESSENCE) || ctx.inventory().hasItem(RUNE_ESSENCE);
-        return altar != null && ctx.players().local().isInArea(plugin.getAirAltar()) && hasEssence;
+        // The ruins are visible from most of the scene, so the area check is what separates "standing
+        // at the ruins" from "still walking towards them". Cheapest checks first, scene scan last.
+        return ctx.players().local().isInArea(plugin.getAirAltar())
+                && hasEssence(ctx)
+                && ctx.gameObjects().withId(MYSTERIOUS_RUINS).isPresent();
     }
 
     @Override
     public int execute() {
-        GameObjectEntity altar = ctx.gameObjects().withId(AIR_ALTAR).first();
-        if(altar != null) {
-            if(config.useMouse()) {
-                ctx.getMouse().move(altar.raw());
-            }
-            altar.interact("Enter");
+        GameObjectEntity ruins = ctx.gameObjects().withId(MYSTERIOUS_RUINS).first();
+        if (ruins == null) {
+            return 600;
         }
+
+        if (config.useMouse()) {
+            ctx.getMouse().move(ruins.raw());
+        }
+
+        // The ruins only offer "Enter" while a matching tiara is worn, so a missing action means the
+        // tiara is missing rather than the click being mistimed.
+        if (!ruins.interact("Enter")) {
+            plugin.pauseScript("Could not enter the ruins, an air tiara must be equipped");
+            return 600;
+        }
+
         return RandomService.between(1200, 2400);
     }
 

@@ -7,8 +7,8 @@ import com.kraken.api.Context;
 import com.kraken.api.input.mouse.VirtualMouse;
 import com.kraken.api.input.mouse.strategy.MouseMovementStrategy;
 import com.kraken.api.input.mouse.strategy.linear.LinearStrategy;
+import com.kraken.api.overlay.GlobalPathfinderOverlay;
 import com.kraken.api.overlay.MouseOverlay;
-import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.tile.AreaService;
 import com.kraken.api.service.tile.GameArea;
 import com.krakenplugins.autorunecrafting.overlay.SceneOverlay;
@@ -17,10 +17,10 @@ import com.krakenplugins.autorunecrafting.script.RunecraftingScript;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameStateChanged;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -28,8 +28,6 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -42,21 +40,22 @@ import java.util.concurrent.TimeUnit;
 )
 public class AutoRunecraftingPlugin extends Plugin {
 
+    private static final String CONFIG_GROUP = "autorunecrafting";
+
     @Inject
     private RunecraftingScript runecraftingScript;
 
     @Inject
     private Context ctx;
 
-    @Getter
-    @Inject
-    private ClientThread clientThread;
-
     @Inject
     private OverlayManager overlayManager;
 
     @Inject
     private MouseOverlay mouseTrackerOverlay;
+
+    @Inject
+    private GlobalPathfinderOverlay pathOverlay;
 
     @Inject
     private SceneOverlay sceneOverlay;
@@ -72,18 +71,15 @@ public class AutoRunecraftingPlugin extends Plugin {
 
     @Getter
     @Setter
-    private GameObjectEntity targetBankBooth;
+    private volatile GameObject targetBankBooth;
 
     @Getter
-    private GameArea faladorBank;
+    private volatile GameArea faladorBank;
 
     @Getter
-    private GameArea airAltar;
+    private volatile GameArea airAltar;
 
-    @Getter
-    private final List<WorldPoint> currentPath = new ArrayList<>();
-
-    private final long startTime = System.currentTimeMillis();
+    private long startTime;
 
     @Provides
     AutoRunecraftingConfig provideConfig(final ConfigManager configManager) {
@@ -92,18 +88,19 @@ public class AutoRunecraftingPlugin extends Plugin {
 
     @Override
     protected void startUp() {
-        WorldPoint[] bank = {
-                new WorldPoint(3009, 3358, 0),
+        // createPolygonArea rasterizes with java.awt.Polygon insideness rules, which exclude the
+        // maximum x and y edges. Both vertex lists are therefore tile corners, not tiles: the bank
+        // outline below covers tiles x 3009-3021, y 3353-3356 plus x 3009-3018, y 3357-3358.
+        faladorBank = areaService.createPolygonArea(
+                new WorldPoint(3009, 3359, 0),
                 new WorldPoint(3009, 3353, 0),
-                new WorldPoint(3021, 3353, 0),
+                new WorldPoint(3022, 3353, 0),
                 new WorldPoint(3022, 3357, 0),
                 new WorldPoint(3019, 3357, 0),
-                new WorldPoint(3019, 3359, 0),
-                new WorldPoint(3009, 3359, 0)
-        };
-        faladorBank = areaService.createPolygonArea(bank);
+                new WorldPoint(3019, 3359, 0)
+        );
 
-        WorldPoint[] air = {
+        airAltar = areaService.createPolygonArea(
                 new WorldPoint(2988, 3299, 0),
                 new WorldPoint(2976, 3296, 0),
                 new WorldPoint(2974, 3288, 0),
@@ -114,15 +111,22 @@ public class AutoRunecraftingPlugin extends Plugin {
                 new WorldPoint(2989, 3303, 0),
                 new WorldPoint(2983, 3302, 0),
                 new WorldPoint(2979, 3301, 0),
-                new WorldPoint(2976, 3299, 0),
-                new WorldPoint(2976, 3296, 0)
-        };
-        airAltar = areaService.createPolygonArea(air);
+                new WorldPoint(2976, 3299, 0)
+        );
 
-        runecraftingScript.start();
+        startTime = System.currentTimeMillis();
+        targetBankBooth = null;
+
+        applyMouseConfig();
+
         overlayManager.add(scriptOverlay);
         overlayManager.add(mouseTrackerOverlay);
         overlayManager.add(sceneOverlay);
+        applyPathOverlay();
+
+        if (ctx.getClient().getGameState() == GameState.LOGGED_IN) {
+            runecraftingScript.start();
+        }
     }
 
     @Override
@@ -131,41 +135,68 @@ public class AutoRunecraftingPlugin extends Plugin {
         overlayManager.remove(scriptOverlay);
         overlayManager.remove(mouseTrackerOverlay);
         overlayManager.remove(sceneOverlay);
+        overlayManager.remove(pathOverlay);
     }
 
     @Subscribe
     private void onConfigChanged(ConfigChanged event) {
-        if(event.getGroup().equals("autorunecrafting")) {
-            String key = event.getKey();
+        if (!event.getGroup().equals(CONFIG_GROUP)) {
+            return;
+        }
 
-            if(key.equals("mouseMovementStrategy")) {
-                VirtualMouse.setMouseMovementStrategy(config.mouseMovementStrategy());
-                if(config.mouseMovementStrategy() == MouseMovementStrategy.REPLAY) {
-                    VirtualMouse.loadLibrary(config.replayLibrary());
-                }
-
-                if(config.mouseMovementStrategy() == MouseMovementStrategy.LINEAR) {
-                    LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
-                    linear.setSteps(config.linearSteps());
-                }
-            }
-
+        switch (event.getKey()) {
+            case "mouseMovementStrategy":
+            case "replayLibrary":
+            case "linearSteps":
+                applyMouseConfig();
+                break;
+            case "showCurrentPath":
+                applyPathOverlay();
+                break;
+            default:
+                break;
         }
     }
 
     @Subscribe
     private void onGameStateChanged(final GameStateChanged event) {
-        final GameState gameState = event.getGameState();
-        switch (gameState) {
-            case LOGGED_IN:
-                startUp();
-                break;
-            case HOPPING:
-            case LOGIN_SCREEN:
-                shutDown();
-            default:
-                break;
+        // Covers enabling the plugin while logged out; start() is a no-op when already running
+        if (event.getGameState() == GameState.LOGGED_IN) {
+            runecraftingScript.start();
         }
+    }
+
+    /**
+     * Shows or hides the walker's own route overlay, which draws whatever the pathfinder last
+     * planned on both the scene and the world map.
+     */
+    private void applyPathOverlay() {
+        if (config.showCurrentPath()) {
+            overlayManager.add(pathOverlay);
+        } else {
+            overlayManager.remove(pathOverlay);
+        }
+    }
+
+    private void applyMouseConfig() {
+        VirtualMouse.setMouseMovementStrategy(config.mouseMovementStrategy());
+
+        if (config.mouseMovementStrategy() == MouseMovementStrategy.REPLAY) {
+            VirtualMouse.loadLibrary(config.replayLibrary());
+        }
+
+        if (config.mouseMovementStrategy() == MouseMovementStrategy.LINEAR) {
+            LinearStrategy linear = (LinearStrategy) MouseMovementStrategy.LINEAR.getStrategy();
+            linear.setSteps(config.linearSteps());
+        }
+    }
+
+    /**
+     * Pauses the script, leaving the reason on the overlay so it is clear why it stopped.
+     */
+    public void pauseScript(String reason) {
+        log.warn("Pausing script: {}", reason);
+        runecraftingScript.pause(reason);
     }
 
     public String getRuntime() {

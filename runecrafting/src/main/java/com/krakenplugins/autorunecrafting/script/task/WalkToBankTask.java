@@ -3,18 +3,13 @@ package com.krakenplugins.autorunecrafting.script.task;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.script.AbstractTask;
-import com.kraken.api.service.bank.BankService;
-import com.kraken.api.service.movement.MovementService;
-import com.kraken.api.service.movement.VariableStrideConfig;
-import com.kraken.api.service.pathfinding.LocalPathfinder;
-import com.krakenplugins.autorunecrafting.AutoRunecraftingConfig;
-import com.krakenplugins.autorunecrafting.AutoRunecraftingPlugin;
+import com.kraken.api.service.util.RandomService;
+import com.kraken.api.service.walker.WalkResult;
+import com.kraken.api.service.walker.Walker;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
-import java.util.List;
-
-import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.*;
+import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.hasEssence;
 
 @Slf4j
 @Singleton
@@ -22,88 +17,31 @@ public class WalkToBankTask extends AbstractTask {
 
     private static final WorldPoint FALADOR_BANK = new WorldPoint(3012, 3356, 0);
 
-    @Inject
-    private AutoRunecraftingPlugin plugin;
+    /** Close enough for OpenBankTask to reach a booth. */
+    private static final int ARRIVAL_TILES = 4;
 
     @Inject
-    private BankService bankService;
-
-    @Inject
-    private AutoRunecraftingConfig config;
-
-    @Inject
-    private LocalPathfinder pathfinder;
-
-    @Inject
-    private MovementService movementService;
-
-    private boolean isTraversing = false;
-    private final VariableStrideConfig strideConfig = VariableStrideConfig.builder().tileDeviation(true).build();
+    private Walker walker;
 
     @Override
     public boolean validate() {
-        if (isTraversing) {
-            return true;
-        }
-
-        boolean hasRunes = ctx.inventory().nameContains("rune").first() != null;
-        boolean hasNoEssence = ctx.inventory().stream().noneMatch((i) -> i.raw().getId() == PURE_ESSENCE || i.raw().getId() == RUNE_ESSENCE);
-
-        return ctx.players().local().isInArea(plugin.getAirAltar())
-                && hasRunes
-                && hasNoEssence
-                && !isTraversing;
+        // Last in the task list, so everything that could bank or craft where it stands has already
+        // been offered the chance. No area check: the script walks out of the altar area, which would
+        // make one un-validate itself part way through the trip.
+        return !hasEssence(ctx);
     }
 
     @Override
     public int execute() {
-        WorldPoint playerLocation = ctx.players().local().location();
-        if (playerLocation.distanceTo(FALADOR_BANK) <= 2) {
-            log.info("Arrived at Bank.");
-            isTraversing = false;
-            return 1000;
+        // The bank is well outside the loaded scene from the altar, which is exactly the case walkTo
+        // handles: it walks to the scene edge, lets the scene shift, and re-plans from there.
+        WalkResult result = walker.walkTo(FALADOR_BANK, ARRIVAL_TILES);
+        if (!result.isSuccess()) {
+            log.warn("Walk to Falador east bank failed: {}", result);
+            return RandomService.between(1500, 3000);
         }
 
-        isTraversing = true;
-
-        try {
-            // Try to find a DIRECT path to the real destination
-            // We do not use backoff here. We want to know if the "Good" path is valid.
-            List<WorldPoint> directPath = pathfinder.findApproximatePath(playerLocation, FALADOR_BANK);
-
-            if (directPath != null && !directPath.isEmpty()) {
-                log.info("Direct path to bank found.");
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath, strideConfig);
-
-                plugin.getCurrentPath().clear();
-                plugin.getCurrentPath().addAll(stridedPath);
-
-                movementService.traversePath(ctx.getClient(), stridedPath);
-                isTraversing = false;
-                return 600;
-            }
-
-            log.info("Direct path failed. Attempting backoff...");
-            List<WorldPoint> backoffPath = pathfinder.findApproximatePathWithBackoff(playerLocation, FALADOR_BANK, 5);
-
-            if (backoffPath != null && !backoffPath.isEmpty()) {
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(backoffPath, strideConfig);
-
-                plugin.getCurrentPath().clear();
-                plugin.getCurrentPath().addAll(stridedPath);
-
-                movementService.traversePath(ctx.getClient(), stridedPath);
-                return 0;
-            }
-
-            log.error("Failed to generate any path (Direct or Backoff)");
-            isTraversing = false;
-            return 1000;
-        } catch (Exception e) {
-            log.error("Error during walk to bank", e);
-            isTraversing = false;
-            return 1000;
-        }
+        return RandomService.between(600, 1200);
     }
 
     @Override
@@ -111,4 +49,3 @@ public class WalkToBankTask extends AbstractTask {
         return "Walking to Bank";
     }
 }
-

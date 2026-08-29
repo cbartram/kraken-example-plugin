@@ -9,6 +9,7 @@ import net.runelite.api.GameObject;
 import net.runelite.api.NPC;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.ObjectID;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -82,6 +83,8 @@ public class SceneOverlay extends Overlay {
         plugin.getBankLocation().render(client, graphics, fill, false);
         plugin.getBankLocation().render(client, graphics, outline, true);
 
+        renderUnlightableTiles(graphics);
+
         LocalPoint localPoint = ctx.players().local().localLocation();
         if (localPoint == null) {
             return;
@@ -101,6 +104,23 @@ public class SceneOverlay extends Overlay {
                     renderDistance(graphics, fire, localPoint,
                             fire.getId() == FORESTERS_CAMPFIRE ? Color.MAGENTA : Color.CYAN);
                 });
+    }
+
+    /**
+     * Marks the tiles the server has refused to light a fire on, so the spot search can be followed.
+     */
+    private void renderUnlightableTiles(Graphics2D graphics) {
+        for (WorldPoint tile : plugin.getUnlightableTiles()) {
+            LocalPoint lp = LocalPoint.fromWorld(client, tile);
+            if (lp == null) {
+                continue;
+            }
+
+            Polygon poly = Perspective.getCanvasTilePoly(client, lp);
+            if (poly != null) {
+                OverlayUtil.renderPolygon(graphics, poly, Color.ORANGE);
+            }
+        }
     }
 
     private void renderDistance(Graphics2D graphics, GameObject fire, LocalPoint from, Color color) {

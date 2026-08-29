@@ -12,6 +12,7 @@ import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.ObjectID;
 
 import java.util.List;
 
@@ -19,9 +20,13 @@ import java.util.List;
 @Singleton
 public class BankDepositBox extends PriorityTask {
 
-    private static final WorldPoint PORT_SARIM = new WorldPoint(3026, 3218, 0);
     public static final WorldPoint PORT_SARIM_DEPOSIT_BOX =  new WorldPoint(3045, 3235, 0);
-    private static final int DEPOSIT_BOX_GAME_OBJECT = 26254; // Deposit
+
+    /** How close the walker has to leave the player for this task to take over. */
+    public static final int DEPOSIT_BOX_RADIUS = 5;
+
+    /** The click walks the player to the box, so the wait has to cover the walk as well as the open. */
+    private static final long OPEN_TIMEOUT_MS = 20_000;
 
     @Inject
     private FishingConfig config;
@@ -39,27 +44,23 @@ public class BankDepositBox extends PriorityTask {
 
     @Override
     public boolean validate() {
+        // Any fish at all rather than a full inventory, so a deposit that only got half of them
+        // through finishes the job instead of stranding the script beside the box.
         List<Integer> fishIds = config.fishingLocation().getFishIds();
-
-        boolean isFull = ctx.inventory().isFull();
-        boolean hasFish = ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0;
-        return isFull &&
-                hasFish &&
+        return config.bankFishKaramja() &&
+                ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0 &&
                 ctx.players().local().isIdle() &&
-                config.bankFishKaramja() &&
-                    (ctx.players().local().isInArea(PORT_SARIM, 10) || ctx.players().local().isInArea(PORT_SARIM_DEPOSIT_BOX));
+                ctx.players().local().isInArea(PORT_SARIM_DEPOSIT_BOX, DEPOSIT_BOX_RADIUS);
     }
 
     @Override
     public int execute() {
         if(depositBoxService.isOpen()) {
             depositFish();
-            SleepService.sleepFor(RandomService.between(1, 4));
-            depositBoxService.close();
             return 0;
         }
 
-        GameObjectEntity depositBox = ctx.gameObjects().withId(DEPOSIT_BOX_GAME_OBJECT).first();
+        GameObjectEntity depositBox = ctx.gameObjects().withId(ObjectID.SARIM_DEPOSIT_BOX).first();
         if(depositBox == null) {
             log.error("No deposit box found...");
             return 600;
@@ -71,20 +72,22 @@ public class BankDepositBox extends PriorityTask {
 
         log.info("Interacting with bank deposit box");
         plugin.setDepositBox(depositBox);
-        depositBox.interact("Deposit");
-        SleepService.sleepWhile(() -> depositBoxService.isClosed(), 10000);
+        if (!depositBox.interact("Deposit")) {
+            log.error("Deposit box has no Deposit action.");
+            plugin.setDepositBox(null);
+            return 600;
+        }
 
-        if(depositBoxService.isOpen()) {
+        if(SleepService.sleepUntilTrue(depositBoxService::isOpen, OPEN_TIMEOUT_MS)) {
             depositFish();
-            SleepService.sleepFor(RandomService.between(1, 4));
-            depositBoxService.close();
+        } else {
+            log.warn("Deposit box never opened, retrying.");
         }
         return 600;
     }
 
     private void depositFish() {
         log.info("Depositing fish from inventory...");
-        plugin.setDepositBox(null);
         List<Integer> fishIds = config.fishingLocation().getFishIds();
         List<DepositBoxEntity> fish = ctx.depositBox()
                 .inInventory()
@@ -96,8 +99,14 @@ public class BankDepositBox extends PriorityTask {
             if(config.useMouse()) {
                 ctx.getMouse().move(f.raw());
             }
-            f.depositAll();
+            if (!f.depositAll()) {
+                log.error("Failed to deposit item id {}", f.getId());
+            }
         }
+
+        SleepService.sleepFor(RandomService.between(1, 4));
+        depositBoxService.close();
+        plugin.setDepositBox(null);
     }
 
     @Override

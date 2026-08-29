@@ -1,21 +1,34 @@
 package com.krakenplugins.example.fishing.script.state.barbarian;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.service.ui.processing.ProcessingService;
 import com.kraken.api.service.util.RandomService;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.fishing.FishingConfig;
+import com.krakenplugins.example.fishing.FishingPlugin;
 import com.krakenplugins.example.fishing.script.FishingLocation;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.widgets.Widget;
+import net.runelite.api.gameval.ItemID;
+import net.runelite.api.gameval.ObjectID;
 
 @Slf4j
+@Singleton
 public class CookFish extends PriorityTask {
-    private static final int BARBARIAN_VILLAGE_FIRE = 43475;
-    private static final int COOKING_ANIM = 897;
+
+    /** Doubles as how far the fire may be, so the script does not walk across the scene to one. */
+    private static final int FIRE_RADIUS = 15;
+
+    /** Quantity handed to the "How many?" interface, so one click cooks the whole inventory. */
+    private static final int COOK_ALL = 28;
+
+    /**
+     * A full inventory cooks in roughly 28 fish x 4 ticks. The wait resolves as soon as the raw fish
+     * run out, so this only caps an interrupted cook.
+     */
+    private static final long COOK_TIMEOUT_MS = 75_000;
 
     private static final long IDLE_RESET_MS = 2000;
     private static final double BASE_REACTION_CHANCE = 0.02;
@@ -33,6 +46,9 @@ public class CookFish extends PriorityTask {
     private FishingConfig config;
 
     @Inject
+    private FishingPlugin plugin;
+
+    @Inject
     private ProcessingService processingService;
 
     private int idleTicks = 0;
@@ -40,62 +56,18 @@ public class CookFish extends PriorityTask {
 
     @Override
     public boolean validate() {
-        // Note: isIdle() can be tricky because it returns true during the 1-tick gap between cooking fish.
-        // The logic in execute() now handles this by waiting for the animation to start.
-        return ctx.inventory().isFull() && (ctx.inventory().hasItem(335) || ctx.inventory().hasItem(331)) &&
-                ctx.players().local().isInArea(FishingLocation.BARBARIAN_VILLAGE.getLocation(), 15) &&
-                ctx.players().local().isIdle() &&
-                config.barbVillageCook();
-    }
-
-    private boolean isProcessingInterfaceOpen() {
-        Widget widget = ctx.getClient().getWidget(InterfaceID.Skillmulti.UNIVERSE);
-        if(widget == null) {
-            return false;
-        }
-
-        return !widget.isSelfHidden();
+        return config.barbVillageCook() &&
+                ctx.inventory().isFull() &&
+                (ctx.inventory().hasItem(ItemID.RAW_TROUT) || ctx.inventory().hasItem(ItemID.RAW_SALMON)) &&
+                ctx.players().local().isInArea(FishingLocation.BARBARIAN_VILLAGE.getLocation(), FIRE_RADIUS) &&
+                ctx.players().local().isIdle();
     }
 
     @Override
     public int execute() {
-        // If we are currently animating (cooking), we return a short sleep to let the action continue.
-        // This prevents spamming logic while the player is busy.
-        if (ctx.players().local().raw().getAnimation() == COOKING_ANIM) {
-            log.info("Player cooking already, waiting");
+        if (processingService.isOpen()) {
             idleTicks = 0;
-            return 600;
-        }
-
-        if (isProcessingInterfaceOpen()) {
-            idleTicks = 0;
-            if (processingService.getAmount() != 28) {
-                log.info("Setting amount to 28.");
-                processingService.setAmount(28);
-            }
-
-            // 1. Dynamically determine which fish to process
-            int targetCookId = -1;
-            if (ctx.inventory().hasItem(331)) { // Raw Trout
-                targetCookId = 333; // Cooked Trout
-            } else if (ctx.inventory().hasItem(335)) { // Raw Salmon
-                targetCookId = 329; // Cooked Salmon
-            }
-
-            // 2. Process and handle failure cleanly
-            if (targetCookId != -1) {
-                if(!processingService.process("Cook", targetCookId)) {
-                    log.error("Failed to process fish on fire. Target ID: {}", targetCookId);
-                    return 600; // Return immediately to avoid the 6-second sleep trap
-                }
-
-                log.info("{} cook interaction successful", targetCookId);
-                SleepService.sleepUntil(() -> ctx.players().local().raw().getAnimation() == COOKING_ANIM, 6000);
-            } else {
-                log.error("Processing interface open, but no raw trout or salmon found.");
-            }
-
-            return 600;
+            return cook();
         }
 
         long now = System.currentTimeMillis();
@@ -113,16 +85,45 @@ public class CookFish extends PriorityTask {
             return RandomService.between(400, 600);
         }
 
-        // 3. Interact with Fire
-        // We only reach here if we aren't cooking AND the interface isn't open.
-        GameObjectEntity fire = ctx.gameObjects().withId(BARBARIAN_VILLAGE_FIRE).nearest();
+        // Barbarian Village's permanent fire, or one the player lit. Both come out of a single scene pass.
+        GameObjectEntity fire = ctx.gameObjects()
+                .filter(o -> o.getId() == ObjectID.FIRE_COOK || o.getId() == ObjectID.FIRE)
+                .within(FIRE_RADIUS)
+                .nearest();
+
         if (fire != null && fire.interact("Cook")) {
             idleTicks = 0;
-            // Wait for the interface to open
-            SleepService.sleepUntilTrue(() -> processingService.isOpen(), 400, 5000);
+            if (!SleepService.sleepUntilTrue(processingService::isOpen, 400, 5000)) {
+                log.warn("Clicked the fire but the cooking interface never opened.");
+            }
         }
 
         return 0;
+    }
+
+    /**
+     * Cooks a full inventory of whichever raw fish is held. {@code process} matches on the id of the
+     * product, which is the only thing the interface lists.
+     */
+    private int cook() {
+        final int rawId = ctx.inventory().hasItem(ItemID.RAW_TROUT) ? ItemID.RAW_TROUT : ItemID.RAW_SALMON;
+        final int cookedId = rawId == ItemID.RAW_TROUT ? ItemID.TROUT : ItemID.SALMON;
+
+        processingService.setAmount(COOK_ALL);
+
+        if (!processingService.process("Cook", cookedId)) {
+            // Retrying cannot change what the interface lists, so stop instead of spinning on it.
+            plugin.pauseScript("Cooking interface does not offer item id " + cookedId);
+            return 0;
+        }
+
+        // The interface cooks the whole inventory and leaves a one tick idle gap between each fish, so
+        // wait on the raw fish running out. Waiting on a single idle tick would read a gap as finished
+        // and click the fire again mid-cook.
+        if (!SleepService.sleepUntilTrue(() -> !ctx.inventory().hasItem(rawId), 600, COOK_TIMEOUT_MS)) {
+            log.warn("Still holding raw fish after {}ms, cooking was interrupted.", COOK_TIMEOUT_MS);
+        }
+        return 600;
     }
 
     @Override
@@ -132,7 +133,9 @@ public class CookFish extends PriorityTask {
 
     @Override
     public int getPriority() {
-        return 100;
+        // Ahead of DropFish, which validates on a full inventory alone and would otherwise throw the
+        // raw fish away before cooking is ever considered.
+        return -2;
     }
 
     private double getReactionIncrement() {

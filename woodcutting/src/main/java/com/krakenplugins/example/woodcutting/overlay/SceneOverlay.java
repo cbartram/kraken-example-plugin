@@ -9,6 +9,7 @@ import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.woodcutting.WoodcuttingConfig;
 import com.krakenplugins.example.woodcutting.WoodcuttingPlugin;
 import net.runelite.api.Client;
+import net.runelite.api.GameObject;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.ui.overlay.*;
@@ -17,7 +18,8 @@ import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 import java.awt.*;
 import java.util.List;
 
-import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.BANK_LOCATION;
+import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.TREE_AREA_RADIUS;
+import static com.krakenplugins.example.woodcutting.WoodcuttingPlugin.TREE_LOCATION;
 
 @Singleton
 public class SceneOverlay extends Overlay {
@@ -54,7 +56,7 @@ public class SceneOverlay extends Overlay {
         if(config.highlightTargetTree()) {
             renderTargetTree();
         }
-        
+
         if(config.showTreeRadius()) {
             renderTreeRadius(graphics);
         }
@@ -66,20 +68,20 @@ public class SceneOverlay extends Overlay {
         return null;
     }
 
+    /**
+     * Draws the area the script treats as "at the trees", which is what decides between walking and
+     * chopping, in green while the player is inside it.
+     */
     private void renderDebug(Graphics2D graphics) {
-        LocalPoint localPoint = LocalPoint.fromWorld(client, BANK_LOCATION);
+        LocalPoint localPoint = LocalPoint.fromWorld(client, TREE_LOCATION);
 
         if (localPoint != null) {
-            // Check if player is in area using your requested method
-            boolean inArea = ctx.players().local().isInArea(BANK_LOCATION, 3);
-
-            // Set Color based on state
+            boolean inArea = ctx.players().local().isInArea(TREE_LOCATION, TREE_AREA_RADIUS);
             Color color = inArea ? Color.GREEN : Color.RED;
 
-            // Render the area
-            // Note: Perspective.getCanvasTileAreaPoly takes 'size' as diameter.
-            // A radius of 3 implies 3 tiles in every direction + the center tile = 7 total width.
-            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, localPoint, (3 * 2) + 1);
+            // getCanvasTileAreaPoly takes a diameter, so a radius covers that many tiles either side
+            // of the centre tile.
+            Polygon areaPoly = Perspective.getCanvasTileAreaPoly(client, localPoint, (TREE_AREA_RADIUS * 2) + 1);
 
             if (areaPoly != null) {
                 OverlayUtil.renderPolygon(graphics, areaPoly, color);
@@ -88,48 +90,39 @@ public class SceneOverlay extends Overlay {
     }
 
     private void renderTargetTree() {
-        if(plugin.getTargetTree() != null) {
-            modelOutlineRenderer.drawOutline(plugin.getTargetTree(), 2, Color.GREEN, 2);
+        GameObject targetTree = plugin.getTargetTree();
+        if(targetTree != null) {
+            modelOutlineRenderer.drawOutline(targetTree, 2, Color.GREEN, 2);
         }
     }
 
     private void renderTreeRadius(Graphics2D graphics) {
-        if (client.getLocalPlayer() == null) {
+        LocalPoint localPoint = ctx.players().local().localLocation();
+        if (localPoint == null) {
             return;
         }
-        LocalPoint localPoint = client.getLocalPlayer().getLocalLocation();
-        if (localPoint != null) {
-            List<GameObjectEntity> trees = ctx.gameObjects()
-                    .within(config.treeRadius())
-                    .reachable()
-                    .withName(config.treeName())
-                    .list();
 
-            for(GameObjectEntity tree : trees) {
-                int distance = localPoint.distanceTo(tree.raw().getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
+        // One scene pass, cheapest filters first, since this runs every frame.
+        List<GameObjectEntity> trees = ctx.gameObjects()
+                .within(config.treeRadius())
+                .withName(config.treeName())
+                .list();
 
-                String overlayText = String.format("Dist: %d", distance);
-                net.runelite.api.Point textLocation = tree.raw().getCanvasTextLocation(graphics, overlayText, 0);
+        GameObject targetTree = plugin.getTargetTree();
 
-                if (textLocation != null) {
-                    Color color;
+        for(GameObjectEntity tree : trees) {
+            int distance = localPoint.distanceTo(tree.raw().getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
 
-                    if(plugin.getTargetTree() != null) {
-                        if (tree.raw().getWorldLocation().getX() == plugin.getTargetTree().getWorldLocation().getX() &&
-                                tree.raw().getWorldLocation().getY() == plugin.getTargetTree().getWorldLocation().getY()) {
-                            color = Color.GREEN;
-                        } else {
-                            color = Color.CYAN;
-                        }
-                    } else {
-                        color = Color.CYAN;
-                    }
+            String overlayText = String.format("Dist: %d", distance);
+            net.runelite.api.Point textLocation = tree.raw().getCanvasTextLocation(graphics, overlayText, 0);
 
-                    OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
+            if (textLocation != null) {
+                Color color = tree.raw() == targetTree ? Color.GREEN : Color.CYAN;
 
-                    if (tree.raw().getClickbox() != null) {
-                        OverlayUtil.renderPolygon(graphics, tree.raw().getClickbox(), color);
-                    }
+                OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
+
+                if (tree.raw().getClickbox() != null) {
+                    OverlayUtil.renderPolygon(graphics, tree.raw().getClickbox(), color);
                 }
             }
         }

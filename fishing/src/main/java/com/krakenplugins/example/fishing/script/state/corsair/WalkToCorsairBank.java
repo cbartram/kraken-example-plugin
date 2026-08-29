@@ -3,45 +3,28 @@ package com.krakenplugins.example.fishing.script.state.corsair;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.core.script.PriorityTask;
-import com.kraken.api.service.movement.MovementService;
-import com.kraken.api.service.movement.VariableStrideConfig;
-import com.kraken.api.service.pathfinding.GlobalPathfinder;
-import com.kraken.api.service.pathfinding.GlobalPathfinderConfig;
-import com.kraken.api.service.tile.AreaService;
-import com.kraken.api.service.tile.GameArea;
+import com.kraken.api.service.walker.Walker;
 import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.coords.WorldPoint;
 
 import java.util.List;
 
-@Slf4j
+import static com.krakenplugins.example.fishing.script.state.corsair.BankCorsairCove.CORSAIR_COVE_DEPOSIT_BOX;
+import static com.krakenplugins.example.fishing.script.state.corsair.BankCorsairCove.DEPOSIT_BOX_RADIUS;
+
 @Singleton
 public class WalkToCorsairBank extends PriorityTask {
 
-    public static final WorldPoint CORSAIR_COVE_BANK = new WorldPoint(2570, 2864, 0);
-
-    private final FishingConfig config;
-    private final GameArea resourceAreaFishingArea;
-    private final GlobalPathfinder pathfinder;
-    private final MovementService movementService;
-    private final FishingPlugin plugin;
-
-    private boolean isTraversing = false;
-    private final VariableStrideConfig strideConfig = VariableStrideConfig
-            .builder()
-            .tileDeviation(true)
-            .build();
+    private static final String DESTINATION = "the Corsair Cove deposit box";
 
     @Inject
-    public WalkToCorsairBank(FishingPlugin plugin, AreaService areaService, FishingConfig config, GlobalPathfinder pathfinder, MovementService movementService) {
-        this.config = config;
-        this.plugin = plugin;
-        this.pathfinder = pathfinder;
-        this.movementService = movementService;
-        resourceAreaFishingArea = areaService.createAreaFromRadius(config.fishingLocation().getLocation(), 8);
-    }
+    private FishingConfig config;
+
+    @Inject
+    private FishingPlugin plugin;
+
+    @Inject
+    private Walker walker;
 
     @Override
     public int getPriority() {
@@ -50,55 +33,19 @@ public class WalkToCorsairBank extends PriorityTask {
 
     @Override
     public boolean validate() {
-        // If actively traversing, keep running regardless of idle state
-        if (isTraversing) {
-            return true;
-        }
-
-        boolean isFull = ctx.inventory().isFull();
         List<Integer> fishIds = config.fishingLocation().getFishIds();
-        boolean hasFish = ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0;
-
-        return isFull &&
-                hasFish &&
-                ctx.players().local().isIdle() &&  // only require idle on fresh trigger
-                config.bankFishCorsair() &&
-                ctx.players().local().isInArea(resourceAreaFishingArea);
+        return config.bankFishCorsair() &&
+                ctx.inventory().isFull() &&
+                ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0 &&
+                !ctx.players().local().isInArea(CORSAIR_COVE_DEPOSIT_BOX, DEPOSIT_BOX_RADIUS);
     }
 
     @Override
     public int execute() {
-        WorldPoint playerLocation = ctx.players().local().location();
-        if (playerLocation.distanceTo(CORSAIR_COVE_BANK) <= 7) {
-            isTraversing = false;
-            plugin.getCurrentPath().clear(); // arrived, safe to clear
-            return 1000;
-        }
-
-        isTraversing = true;
-
-        try {
-            List<WorldPoint> directPath = pathfinder.findPath(playerLocation, CORSAIR_COVE_BANK,   GlobalPathfinderConfig.builder().useCharterShips(false)
-                    .useBoats(false)
-                    .useSpiritTrees(false)
-                    .build());
-
-            if (directPath != null && !directPath.isEmpty()) {
-                log.info("Direct path found to: CORSAIR_COVE_BANK.");
-                List<WorldPoint> stridedPath = movementService.applyVariableStride(directPath, strideConfig);
-                movementService.traversePath(ctx.getClient(), stridedPath);
-                return 600;
-            }
-
-            log.error("Failed to generate any path to Corsair cove bank");
-            isTraversing = false;
-            return 1000;
-
-        } catch (Exception e) {
-            log.error("Error during walk to Corsair Cove Bank", e);
-            isTraversing = false;
-            return 1000;
-        }
+        // The walker owns the route out of the resource area, including whatever shortcut it needs,
+        // and blocks until it arrives or can say why it did not.
+        plugin.reportWalk(DESTINATION, walker.walkTo(CORSAIR_COVE_DEPOSIT_BOX));
+        return 600;
     }
 
     @Override

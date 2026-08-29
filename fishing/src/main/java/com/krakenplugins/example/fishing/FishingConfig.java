@@ -112,7 +112,7 @@ public interface FishingConfig extends Config {
 	@ConfigItem(
 			keyName = "barbVillageCook",
 			name = "Cook Fish",
-			description = "Automatically uses the fire to cook fish in the Barbarian Village.",
+			description = "Automatically uses the fire to cook fish in the Barbarian Village. Also enable Drop Fish, otherwise the script stops once the inventory is full of cooked fish.",
 			position = 1,
 			section = barbarianFishing
 	)
@@ -153,7 +153,7 @@ public interface FishingConfig extends Config {
 	@ConfigSection(
 			name = "Corsair Cove Fishing Settings",
 			description = "General options for configuring fishing when at the Corsair cove resource area.",
-			position = 4
+			position = 5
 	)
 	String corsairCove = "corsairCove";
 
@@ -205,17 +205,6 @@ public interface FishingConfig extends Config {
 			section = overlay
 	)
 	default boolean highlightDepositBox() {
-		return false;
-	}
-
-	@ConfigItem(
-			keyName = "highlightNpcs",
-			name = "Highlight Npcs",
-			description = "Highlights any NPC being chosen to interact with (i.e. Customs officer & Seamen for Karamja).",
-			position = 2,
-			section = overlay
-	)
-	default boolean highlightNpcs() {
 		return false;
 	}
 

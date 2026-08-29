@@ -4,8 +4,8 @@ package com.krakenplugins.example.fishing.overlay;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.kraken.api.Context;
+import com.kraken.api.query.gameobject.GameObjectEntity;
 import com.kraken.api.query.npc.NpcEntity;
-import com.kraken.api.service.pathfinding.LocalPathfinder;
 import com.krakenplugins.example.fishing.FishingConfig;
 import com.krakenplugins.example.fishing.FishingPlugin;
 import net.runelite.api.Client;
@@ -19,19 +19,20 @@ import java.util.List;
 
 @Singleton
 public class SceneOverlay extends Overlay {
+
+    private static final int DEBUG_RENDER_DISTANCE = 10;
+
     private final Client client;
     private final FishingPlugin plugin;
     private final Context ctx;
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final FishingConfig config;
-    private final LocalPathfinder localPathfinder;
 
     @Inject
-    public SceneOverlay(Client client, Context ctx, FishingPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, FishingConfig config, LocalPathfinder localPathfinder) {
+    public SceneOverlay(Client client, Context ctx, FishingPlugin plugin, ModelOutlineRenderer modelOutlineRenderer, FishingConfig config) {
         this.client = client;
         this.plugin = plugin;
         this.ctx = ctx;
-        this.localPathfinder = localPathfinder;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
 
@@ -53,89 +54,65 @@ public class SceneOverlay extends Overlay {
             renderDepositBox();
         }
 
-        if(config.highlightNpcs()) {
-            renderNpc();
-        }
-
         if(config.debug()) {
             renderNearbySpots(graphics);
-        }
-
-        if(config.highlightCurrentPath()) {
-            localPathfinder.renderPath(plugin.getCurrentPath(), graphics, new Color(24, 191, 243));
         }
 
         return null;
     }
 
     private void renderTargetSpot() {
-        if (plugin.getTargetSpot() != null
-                && plugin.getTargetSpot().raw() != null
-                && plugin.getTargetSpot().raw().getModel() != null) {  // <-- add this
-            modelOutlineRenderer.drawOutline(plugin.getTargetSpot().raw(), 2, Color.GREEN, 2);
+        NpcEntity spot = plugin.getTargetSpot();
+        if (spot != null && spot.raw() != null && spot.raw().getModel() != null) {
+            modelOutlineRenderer.drawOutline(spot.raw(), 2, Color.GREEN, 2);
         }
     }
 
     private void renderDepositBox() {
-        if (plugin.getDepositBox() != null
-                && plugin.getDepositBox().raw() != null
-                && plugin.getDepositBox().raw().getRenderable() != null
-                && plugin.getDepositBox().raw().getRenderable().getModel() != null) {
-            modelOutlineRenderer.drawOutline(plugin.getDepositBox().raw(), 2, Color.GREEN, 2);
-        }
-    }
-
-    private void renderNpc() {
-        if (plugin.getNpc() != null
-                && plugin.getNpc().raw() != null
-                && plugin.getNpc().raw().getModel() != null) {
-            modelOutlineRenderer.drawOutline(plugin.getNpc().raw(), 2, Color.GREEN, 2);
+        GameObjectEntity depositBox = plugin.getDepositBox();
+        if (depositBox != null
+                && depositBox.raw() != null
+                && depositBox.raw().getRenderable() != null
+                && depositBox.raw().getRenderable().getModel() != null) {
+            modelOutlineRenderer.drawOutline(depositBox.raw(), 2, Color.GREEN, 2);
         }
     }
 
     private void renderNearbySpots(Graphics2D graphics) {
-        if (client.getLocalPlayer() == null) {
+        LocalPoint localPoint = ctx.players().local().localLocation();
+        if (localPoint == null) {
             return;
         }
-        LocalPoint localPoint = client.getLocalPlayer().getLocalLocation();
-        if (localPoint != null) {
-            List<NpcEntity> spots = ctx.npcs()
-                    .within(10)
-                    .reachable()
-                    .nameContains("fishing spot")
-                    .list();
 
-            for(NpcEntity spot : spots) {
-                int distance = localPoint.distanceTo(spot.raw().getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
-                String overlayText = String.format("Dist: %d", distance);
-                net.runelite.api.Point textLocation = spot.raw().getCanvasTextLocation(graphics, overlayText, 0);
+        // This runs every frame, so the spot id does the filtering: reachable() costs a client thread
+        // reachability flood per NPC it is handed.
+        List<NpcEntity> spots = ctx.npcs()
+                .withId(config.fishingLocation().getSpotId())
+                .within(DEBUG_RENDER_DISTANCE)
+                .reachable()
+                .list();
 
-                if (textLocation != null) {
-                    Color color;
+        NpcEntity target = plugin.getTargetSpot();
+        for(NpcEntity spot : spots) {
+            int distance = localPoint.distanceTo(spot.raw().getLocalLocation()) / Perspective.LOCAL_TILE_SIZE;
+            String overlayText = String.format("Dist: %d", distance);
+            net.runelite.api.Point textLocation = spot.raw().getCanvasTextLocation(graphics, overlayText, 0);
+            if (textLocation == null) {
+                continue;
+            }
 
-                    if(plugin.getTargetSpot() != null) {
-                        if (spot.raw().getWorldLocation().getX() == plugin.getTargetSpot().raw().getWorldLocation().getX() &&
-                                spot.raw().getWorldLocation().getY() == plugin.getTargetSpot().raw().getWorldLocation().getY()) {
-                            color = Color.GREEN;
-                        } else {
-                            color = Color.CYAN;
-                        }
-                    } else {
-                        color = Color.CYAN;
-                    }
+            boolean isTarget = target != null && target.raw() != null
+                    && spot.raw().getWorldLocation().equals(target.raw().getWorldLocation());
+            Color color = isTarget ? Color.GREEN : Color.CYAN;
 
-                    OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
+            OverlayUtil.renderTextLocation(graphics, textLocation, overlayText, color);
 
-                    if (spot.raw() != null) {
-                        Shape clickbox = spot.raw().getConvexHull();
-                        if (clickbox != null) {
-                            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 100));
-                            graphics.fill(clickbox);
-                            graphics.setColor(color);
-                            graphics.draw(clickbox);
-                        }
-                    }
-                }
+            Shape clickbox = spot.raw().getConvexHull();
+            if (clickbox != null) {
+                graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 100));
+                graphics.fill(clickbox);
+                graphics.setColor(color);
+                graphics.draw(clickbox);
             }
         }
     }

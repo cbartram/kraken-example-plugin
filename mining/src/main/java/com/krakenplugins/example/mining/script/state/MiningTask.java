@@ -8,13 +8,16 @@ import com.kraken.api.service.pathfinding.GlobalPathfinder;
 import com.kraken.api.service.util.SleepService;
 import com.krakenplugins.example.mining.MiningPlugin;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Player;
 
-import static com.krakenplugins.example.mining.MiningPlugin.*;
+import static com.krakenplugins.example.mining.MiningPlugin.DEPLETED_ROCKS;
+import static com.krakenplugins.example.mining.MiningPlugin.IRON_ROCKS;
 
 @Slf4j
 @Singleton
 public class MiningTask extends AbstractTask {
+
+    // How long a click has to produce a walk or a swing before it is treated as lost.
+    private static final long INTERACTION_TIMEOUT_MS = 3000;
 
     @Inject
     private MiningPlugin plugin;
@@ -24,79 +27,67 @@ public class MiningTask extends AbstractTask {
 
     @Override
     public boolean validate() {
-        boolean playerInMiningArea = ctx.players().local().isInArea(plugin.getMiningArea());
-        boolean inventoryHasSpace = !ctx.inventory().isFull();
-        return playerInMiningArea && inventoryHasSpace;
+        return !ctx.inventory().isFull() && ctx.players().local().isInArea(plugin.getMiningArea());
     }
 
     @Override
     public int execute() {
-        // If target rock is not null and target rock is now depleted pick a new rock
-        if(plugin.getTargetRock() != null) {
-            GameObjectEntity targetRock = ctx.gameObjects().filter(g -> g.raw().getWorldLocation().getX() == plugin.getTargetRock().getWorldLocation().getX() &&
-                    g.raw().getWorldLocation().getY() == plugin.getTargetRock().getWorldLocation().getY()).first();
+        pathfinder.clearLastResult();
 
-            if(targetRock == null) {
-                log.error("Target rock (match) is null");
-                return 0;
-            }
-
-            pathfinder.clearLastResult();
-            if(IRON_ORE_DEPLETED_GAME_OBJECTS.contains(targetRock.getId())) {
-                GameObjectEntity ironRock = findRock();
-                if(ironRock == null) {
-                    return 650;
-                }
-                plugin.setTargetRock(ironRock.raw());
-                ctx.getMouse().move(ironRock.raw());
-                ironRock.interact("Mine");
-                SleepService.sleepUntilIdle();
-                return 250;
-            }
-
-            // If player is mining and target rock is not depleted
-            if (isPlayerMining(ctx.players().local().raw()) || ctx.players().local().isMoving()) {
-                SleepService.sleepUntilIdle();
-            }
-        }
-
-        GameObjectEntity ironRock = findRock();
-        if(ironRock == null) {
+        GameObjectEntity rock = findRock();
+        if (rock == null) {
+            plugin.setTargetRock(null);
             return 650;
         }
 
-        plugin.setTargetRock(ironRock.raw());
-        ironRock.interact("Mine");
-
-        // Wait for the player to start mining (or moving to the rock).
-        // If the player is still idle after a timeout, something went wrong, and we should try again.
-        SleepService.sleepUntilIdle();
-        return 250;
-    }
-
-    private GameObjectEntity findRock() {
-        GameObjectEntity ironRock = ctx.gameObjects()
-                .within(8)
-                .filter(g -> IRON_ORE_GAME_OBJECTS.contains(g.getId()) && !IRON_ORE_DEPLETED_GAME_OBJECTS.contains(g.getId()))
-                .random();
-
-        if (ironRock == null || ironRock.isNull()) {
-            log.info("No iron rock could be located, sleeping...");
-            return null;
+        plugin.moveMouseTo(rock.raw());
+        if (!rock.interact("Mine")) {
+            log.info("Mine action was not available on the rock at {}", rock.raw().getWorldLocation());
+            plugin.setTargetRock(null);
+            return 600;
         }
-        return ironRock;
+        plugin.setTargetRock(rock.raw());
+
+        // The click is only acted on next tick, so wait for the walk or the swing to start before
+        // reading "idle" as "this rock is spent".
+        if (!SleepService.sleepUntil(() -> !ctx.players().local().isIdle(), INTERACTION_TIMEOUT_MS)) {
+            log.info("Mine click never took effect, picking another rock");
+            plugin.setTargetRock(null);
+            return 0;
+        }
+
+        // Going idle again means the rock is mined out, or that something interrupted us. Either way
+        // the next loop picks a fresh rock.
+        SleepService.sleepUntilIdle();
+        plugin.setTargetRock(null);
+        return 0;
     }
 
-    private boolean isPlayerMining(Player player) {
-        return player.getAnimation() == net.runelite.api.AnimationID.MINING_BRONZE_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_IRON_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_STEEL_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_BLACK_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_MITHRIL_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_ADAMANT_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_RUNE_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_DRAGON_PICKAXE ||
-                player.getAnimation() == net.runelite.api.AnimationID.MINING_CRYSTAL_PICKAXE;
+    /**
+     * Returns the closest iron rock that still holds ore, or null while they are all respawning.
+     * Spent rocks are what separate a respawn wait from standing somewhere with no iron at all,
+     * which no amount of retrying will fix.
+     *
+     * @return The rock to mine next, or null if there is nothing to mine right now.
+     */
+    private GameObjectEntity findRock() {
+        GameObjectEntity rock = ctx.gameObjects()
+                .filter(object -> IRON_ROCKS.contains(object.getId()) && object.isInArea(plugin.getMiningArea()))
+                .nearest();
+
+        if (rock == null) {
+            boolean respawning = !ctx.gameObjects()
+                    .filter(object -> DEPLETED_ROCKS.contains(object.getId()) && object.isInArea(plugin.getMiningArea()))
+                    .isEmpty();
+
+            if (respawning) {
+                log.info("Every iron rock is mined out, waiting on a respawn");
+            } else {
+                plugin.halt("No iron rocks in the mining area");
+            }
+        }
+
+        return rock;
     }
 
     @Override

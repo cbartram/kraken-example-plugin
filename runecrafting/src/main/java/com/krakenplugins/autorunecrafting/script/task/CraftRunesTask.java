@@ -15,38 +15,56 @@ import static com.krakenplugins.autorunecrafting.script.RunecraftingScript.*;
 @Singleton
 public class CraftRunesTask extends AbstractTask {
 
+    /** Crafting a whole inventory is one action, but the essence only clears once the server replies. */
+    private static final long CRAFT_TIMEOUT_MS = 5_000L;
+
     @Inject
     private AutoRunecraftingConfig config;
 
     @Override
     public boolean validate() {
-        GameObjectEntity airAltarInternal = ctx.gameObjects().withId(AIR_ALTAR_INTERNAL).first();
-        return airAltarInternal != null;
+        // Seeing the altar is the only proof that we are inside the temple, and it is what puts this
+        // task ahead of the walk tasks: the temple is nowhere near either of their destinations.
+        return ctx.gameObjects().withId(AIR_ALTAR).isPresent();
     }
 
     @Override
     public int execute() {
-        GameObjectEntity airAltarInternal = ctx.gameObjects().withId(AIR_ALTAR_INTERNAL).first();
-        boolean hasEssence = ctx.inventory().hasItem(PURE_ESSENCE) || ctx.inventory().hasItem(RUNE_ESSENCE);
-
-        if(airAltarInternal != null && hasEssence) {
-            if(config.useMouse()) {
-                ctx.getMouse().move(airAltarInternal.raw());
+        if (hasEssence(ctx)) {
+            GameObjectEntity altar = ctx.gameObjects().withId(AIR_ALTAR).first();
+            if (altar == null) {
+                return 600;
             }
-            airAltarInternal.interact("Craft-rune");
-            SleepService.sleepUntil(() -> !ctx.inventory().hasItem(RUNE_ESSENCE) && !ctx.inventory().hasItem(PURE_ESSENCE));
+
+            if (config.useMouse()) {
+                ctx.getMouse().move(altar.raw());
+            }
+
+            if (!altar.interact("Craft-rune")) {
+                log.warn("Craft-rune was not available on the altar");
+                return 600;
+            }
+
+            // Leaving with essence still in the inventory only means walking straight back in, so
+            // stay put until the craft has actually landed.
+            if (!SleepService.sleepUntil(() -> !hasEssence(ctx), CRAFT_TIMEOUT_MS)) {
+                log.warn("Essence was still in the inventory after crafting");
+                return 600;
+            }
         }
 
-        GameObjectEntity portal = ctx.gameObjects().withId(PORTAL).first();
-        if(portal != null) {
-            if(config.useMouse()) {
-                ctx.getMouse().move(portal.raw());
-            }
-            portal.interact("Use");
-            return RandomService.between(2400, 3200);
+        GameObjectEntity portal = ctx.gameObjects().withId(EXIT_PORTAL).first();
+        if (portal == null) {
+            log.warn("Exit portal not found inside the air temple");
+            return 600;
         }
 
-        return 0;
+        if (config.useMouse()) {
+            ctx.getMouse().move(portal.raw());
+        }
+
+        portal.interact("Use");
+        return RandomService.between(2400, 3200);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.krakenplugins.example.fishing.script.state;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.kraken.api.core.script.PriorityTask;
 import com.kraken.api.query.container.inventory.InventoryEntity;
 import com.kraken.api.service.ui.tab.InterfaceTab;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 @Slf4j
+@Singleton
 public class DropFish extends PriorityTask {
 
     @Inject
@@ -38,18 +40,11 @@ public class DropFish extends PriorityTask {
 
     @Override
     public boolean validate() {
-        boolean isFull = ctx.inventory().isFull();
-
-        List<Integer> fishIds = config.fishingLocation().getFishIds();
-        boolean hasFish = ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0;
-
-        // Engage if full. Disengage ONLY if no fish left.
-        if (isFull) {
+        // Engage if full. Disengage ONLY if no fish left, so a partly emptied inventory keeps dropping.
+        if (ctx.inventory().isFull()) {
             isDropping = true;
-        } else if (!hasFish) {
-            isDropping = false;
-            missChanceState = 0;
-            recoveryCounter = 0;
+        } else if (!hasFish()) {
+            reset();
         }
 
         return isDropping;
@@ -67,11 +62,11 @@ public class DropFish extends PriorityTask {
                 .filter(item -> fishIds.contains(item.getId()))
                 .list();
 
+        // A full inventory with none of this location's fish in it. Dropping cannot make progress and
+        // this task blocks every other one, so stop rather than re-latch on isFull() every tick.
         if (items.isEmpty()) {
-            isDropping = false;
-            missChanceState = 0;
-            recoveryCounter = 0;
-            plugin.setLastDropTimestamp(System.currentTimeMillis()); // <--- ADD THIS
+            reset();
+            plugin.pauseScript("Inventory is full but holds none of the fish for " + config.fishingLocation().name());
             return 0;
         }
 
@@ -98,7 +93,27 @@ public class DropFish extends PriorityTask {
             SleepService.sleep(13, 41);
         }
 
+        // Stamps every batch, so the tick that empties the last fish leaves a fresh timestamp behind for
+        // the fishing tasks to read.
+        plugin.setLastDropTimestamp(System.currentTimeMillis());
         return RandomService.between(50, 105);
+    }
+
+    /**
+     * True while the inventory still holds fish from the configured location.
+     */
+    private boolean hasFish() {
+        List<Integer> fishIds = config.fishingLocation().getFishIds();
+        return ctx.inventory().filter(item -> fishIds.contains(item.getId())).count() > 0;
+    }
+
+    /**
+     * Returns to the disengaged state, ready for the next full inventory.
+     */
+    private void reset() {
+        isDropping = false;
+        missChanceState = 0;
+        recoveryCounter = 0;
     }
 
     /**
@@ -119,7 +134,7 @@ public class DropFish extends PriorityTask {
      * Increases strictness and sets the recovery counter.
      */
     private void handleMiss(InventoryEntity item) {
-        log.info("Simulating misclick on item slot: " + item.raw().getSlot());
+        log.info("Simulating misclick on item slot: {}", item.raw().getSlot());
 
         // Simulate the time wasted by a misclick (move mouse but don't drop)
         if (config.useMouse()) {

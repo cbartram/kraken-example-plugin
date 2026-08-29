@@ -15,15 +15,11 @@ import java.awt.*;
 @Singleton
 public class ScriptOverlay extends OverlayPanel {
 
-    private static final Color HEADER_COLOR  = Color.CYAN;
-    private static final Color INFO_COLOR    = Color.LIGHT_GRAY;
-    private static final Color WARN_COLOR    = Color.YELLOW;
-    private static final Color ERROR_COLOR   = new Color(255, 80, 80);
+    private static final Color HEADER_COLOR = Color.CYAN;
 
     private final FishingPlugin plugin;
     private final FishingConfig config;
-    private LogOverlayComponent logOverlayComponent;
-
+    private final LogOverlayComponent logOverlayComponent;
 
     @Inject
     private ScriptOverlay(FishingPlugin plugin,  FishingConfig config, LogOverlayComponent logOverlayComponent) {
@@ -42,9 +38,9 @@ public class ScriptOverlay extends OverlayPanel {
 
         panelComponent.getChildren().add(TitleComponent.builder().text("").build());
 
-        addLine("Status",      plugin.getStatus(),    Color.WHITE);
-        addLine("Runtime",     plugin.getRuntime(),   Color.WHITE);
-        addLine("Fish Caught", String.valueOf(plugin.getFishCaught()), Color.WHITE);
+        addLine("Status",      plugin.getStatus());
+        addLine("Runtime",     plugin.getRuntime());
+        addLine("Fish Caught", String.valueOf(plugin.getFishCaught()));
 
         if(config.showLog()) {
             logOverlayComponent.addTo(panelComponent);
@@ -52,12 +48,12 @@ public class ScriptOverlay extends OverlayPanel {
         return super.render(graphics);
     }
 
-    private void addLine(String label, String value, Color valueColor) {
+    private void addLine(String label, String value) {
         panelComponent.getChildren().add(LineComponent.builder()
                 .left(label + ":")
                 .leftColor(Color.GRAY)
                 .right(value)
-                .rightColor(valueColor)
+                .rightColor(Color.WHITE)
                 .build());
     }
 }

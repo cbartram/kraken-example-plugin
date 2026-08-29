@@ -20,6 +20,7 @@ import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.ObjectID;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -56,6 +57,12 @@ public class BurnLogsTask extends AbstractTask {
 
     /** Failed light attempts on the same tile before giving up on it and picking another. */
     private static final int MAX_LIGHT_ATTEMPTS = 3;
+
+    /** How far from the player to look for a tile that will take a fire. */
+    private static final int SPOT_SEARCH_RADIUS = 6;
+
+    /** How many of the nearest valid tiles to pick between, so the choice isn't always the same one. */
+    private static final int SPOT_CHOICES = 5;
 
     private int lightAttempts;
 
@@ -100,6 +107,12 @@ public class BurnLogsTask extends AbstractTask {
             return moveToSafeSpot(bankTiles);
         }
 
+        // Already know this tile is a dead end, so move before wasting a click on it.
+        final WorldPoint spot = ctx.players().local().location();
+        if (plugin.isUnlightable(spot)) {
+            return moveToSafeSpot(bankTiles);
+        }
+
         InventoryEntity tinderbox = ctx.inventory().withId(ItemID.TINDERBOX).first();
         if (tinderbox == null) {
             return 600;
@@ -112,17 +125,26 @@ public class BurnLogsTask extends AbstractTask {
         tinderbox.useOn(randomLog.raw());
         plugin.markAction();
 
-        // Wait for the animation to start so we don't spam click.
-        if (SleepService.sleepUntil(() -> !ctx.players().local().isIdle(), RandomService.between(1200, 1800))) {
+        // Resolves either way: the light animation starts, or the server tells us this tile refuses fires.
+        boolean started = SleepService.sleepUntil(
+                () -> !ctx.players().local().isIdle() || plugin.isUnlightable(spot),
+                RandomService.between(1200, 1800));
+
+        if (plugin.isUnlightable(spot)) {
+            lightAttempts = 0;
+            return moveToSafeSpot(bankTiles);
+        }
+
+        if (started) {
             lightAttempts = 0;
             return 600;
         }
 
-        // Nothing happened, so this tile probably doesn't allow fires. Try somewhere else.
+        // Silent failure, with no message saying why. Give the tile a couple more tries before moving.
         if (++lightAttempts >= MAX_LIGHT_ATTEMPTS) {
             log.info("Could not light a fire here after {} attempts, moving elsewhere", lightAttempts);
             lightAttempts = 0;
-            return moveToSafeSpot(plugin.getBankLocation().getTiles());
+            return moveToSafeSpot(bankTiles);
         }
 
         return 600;
@@ -176,8 +198,8 @@ public class BurnLogsTask extends AbstractTask {
     private int moveToSafeSpot(Set<WorldPoint> bankTiles) {
         WorldPoint targetSpot = findSafeSpot(bankTiles);
         if (targetSpot == null) {
-            log.warn("Could not find a valid firemaking spot nearby.");
-            return 1000;
+            plugin.pauseScript("No tile nearby will take a fire");
+            return 600;
         }
 
         movementService.moveTo(targetSpot);
@@ -187,28 +209,51 @@ public class BurnLogsTask extends AbstractTask {
     }
 
     /**
-     * Helper to find a reachable tile that is NOT in the bank, but close to it.
+     * Picks somewhere to light a fire: the closest tiles to the player that sit outside the bank, are
+     * walkable, and have not already been refused by the server. Chooses at random from the nearest few
+     * rather than always taking the single closest, so repeated failures fan out instead of retrying
+     * the same tile.
      */
     private WorldPoint findSafeSpot(Set<WorldPoint> bankTiles) {
-        if (bankTiles.isEmpty()) return null;
+        final WorldPoint from = ctx.players().local().location();
+        if (from == null) return null;
 
-        // Convert set to list to pick a random anchor point
-        List<WorldPoint> tilesList = new ArrayList<>(bankTiles);
+        List<WorldPoint> candidates = new ArrayList<>();
+        for (int dx = -SPOT_SEARCH_RADIUS; dx <= SPOT_SEARCH_RADIUS; dx++) {
+            for (int dy = -SPOT_SEARCH_RADIUS; dy <= SPOT_SEARCH_RADIUS; dy++) {
+                // Skip the tile we are already on, otherwise a silent failure can "move" us nowhere.
+                if (dx == 0 && dy == 0) {
+                    continue;
+                }
 
-        // Try up to 10 times to find a valid spot to avoid infinite loops
-        for (int i = 0; i < 10; i++) {
-            WorldPoint randomBankTile = tilesList.get(RandomService.between(0, tilesList.size()));
-
-            int dx = RandomService.between(-4, 4);
-            int dy = RandomService.between(-4, 4);
-
-            WorldPoint candidate = randomBankTile.dx(dx).dy(dy);
-
-            if (!bankTiles.contains(candidate) && tileService.isTileReachable(candidate)) {
-                return candidate;
+                WorldPoint candidate = from.dx(dx).dy(dy);
+                if (!bankTiles.contains(candidate) && !plugin.isUnlightable(candidate)) {
+                    candidates.add(candidate);
+                }
             }
         }
-        return null;
+
+        // Reachability is the expensive check, so it runs last, nearest first, and stops as soon as
+        // there are enough tiles to choose between.
+        candidates.sort(Comparator.comparingInt(from::distanceTo));
+
+        List<WorldPoint> reachable = new ArrayList<>();
+        for (WorldPoint candidate : candidates) {
+            if (tileService.isTileReachable(candidate)) {
+                reachable.add(candidate);
+                if (reachable.size() >= SPOT_CHOICES) {
+                    break;
+                }
+            }
+        }
+
+        if (reachable.isEmpty()) {
+            log.warn("No reachable firemaking spot within {} tiles ({} tile(s) excluded so far)",
+                    SPOT_SEARCH_RADIUS, plugin.getUnlightableTiles().size());
+            return null;
+        }
+
+        return reachable.get(RandomService.between(0, reachable.size()));
     }
 
     @Override
