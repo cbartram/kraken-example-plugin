@@ -9,6 +9,8 @@ import com.krakenplugins.example.combat.CombatConfig;
 import com.krakenplugins.example.combat.script.ScriptContext;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Optional;
+
 @Slf4j
 @Singleton
 public class EatFoodTask extends AbstractTask {
@@ -27,12 +29,12 @@ public class EatFoodTask extends AbstractTask {
 
     @Override
     public int execute() {
-        InventoryEntity food = ctx.inventory().food().first();
-        if (food == null) {
+        Optional<InventoryEntity> food = ctx.inventory().food().first();
+        if (food.isEmpty()) {
             return RandomService.between(300, 600);
         }
 
-        food.interact("Eat");
+        food.get().interact("Eat");
         scriptContext.rollEatThreshold(config.eatAt());
 
         // Eating blocks the next bite for ~3 ticks

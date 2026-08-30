@@ -90,7 +90,7 @@ public class BurnLogsTask extends AbstractTask {
             return 600;
         }
 
-        InventoryEntity randomLog = ctx.inventory().withName(config.logName()).random();
+        InventoryEntity randomLog = ctx.inventory().withName(config.logName()).random().orElse(null);
         if (randomLog == null) {
             return 600;
         }
@@ -113,7 +113,7 @@ public class BurnLogsTask extends AbstractTask {
             return moveToSafeSpot(bankTiles);
         }
 
-        InventoryEntity tinderbox = ctx.inventory().withId(ItemID.TINDERBOX).first();
+        InventoryEntity tinderbox = ctx.inventory().withId(ItemID.TINDERBOX).first().orElse(null);
         if (tinderbox == null) {
             return 600;
         }

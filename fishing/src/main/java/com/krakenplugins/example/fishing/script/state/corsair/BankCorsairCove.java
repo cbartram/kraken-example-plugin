@@ -60,7 +60,7 @@ public class BankCorsairCove extends PriorityTask {
             return 0;
         }
 
-        GameObjectEntity depositBox = ctx.gameObjects().withId(ObjectID.CORSCURS_BANK_DEPOSIT_BOX).first();
+        GameObjectEntity depositBox = ctx.gameObjects().withId(ObjectID.CORSCURS_BANK_DEPOSIT_BOX).first().orElse(null);
         if(depositBox == null) {
             log.error("No deposit box found...");
             return 600;

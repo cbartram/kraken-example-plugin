@@ -12,6 +12,8 @@ import com.krakenplugins.example.combat.script.ScriptContext;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
+import java.util.Optional;
+
 @Slf4j
 @Singleton
 public class BuryBonesTask extends AbstractTask {
@@ -36,9 +38,9 @@ public class BuryBonesTask extends AbstractTask {
 
     @Override
     public int execute() {
-        InventoryEntity bones = ctx.inventory().withAction("Bury").first();
-        if (bones != null) {
-            bones.interact("Bury");
+        Optional<InventoryEntity> bones = ctx.inventory().withAction("Bury").first();
+        if (bones.isPresent()) {
+            bones.get().interact("Bury");
             // Burying blocks other actions for ~2 ticks
             return RandomService.randomGaussian(1500, 200);
         }
@@ -66,6 +68,7 @@ public class BuryBonesTask extends AbstractTask {
                 .filter(g -> g.raw().isOwnedByLocalPlayer())
                 .nameContains("bones")
                 .reachable()
-                .nearest();
+                .nearest()
+                .orElse(null);
     }
 }

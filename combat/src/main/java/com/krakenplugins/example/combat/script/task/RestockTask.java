@@ -15,6 +15,8 @@ import com.krakenplugins.example.combat.script.CombatScript;
 import com.krakenplugins.example.combat.script.ScriptContext;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Optional;
+
 @Slf4j
 @Singleton
 public class RestockTask extends AbstractTask {
@@ -50,13 +52,13 @@ public class RestockTask extends AbstractTask {
         }
 
         if (!bankService.isOpen()) {
-            GameObjectEntity booth = ctx.gameObjects().withAction("Bank").reachable().nearest();
-            if (booth == null) {
+            Optional<GameObjectEntity> booth = ctx.gameObjects().withAction("Bank").reachable().nearest();
+            if (booth.isEmpty()) {
                 log.warn("No bank object found near {}", CombatScript.VARROCK_EAST_BANK);
                 return RandomService.between(1200, 2400);
             }
 
-            booth.interact("Bank");
+            booth.get().interact("Bank");
             if (!SleepService.sleepUntil(bankService::isOpen, RandomService.between(6000, 9000))) {
                 return RandomService.between(600, 1200);
             }
@@ -67,8 +69,8 @@ public class RestockTask extends AbstractTask {
             SleepService.sleep(400, 900);
         }
 
-        BankEntity food = ctx.bank().withName(config.foodName()).first();
-        if (food == null) {
+        Optional<BankEntity> food = ctx.bank().withName(config.foodName()).first();
+        if (food.isEmpty()) {
             scriptContext.setHaltReason("Out of " + config.foodName() + " - script halted");
             bankService.close();
             return RandomService.between(600, 1200);
@@ -77,7 +79,7 @@ public class RestockTask extends AbstractTask {
         // Leave room for drops when looting or burying, otherwise fill with as much food as configured
         int reserve = (config.buryBones() || !config.lootIds().isBlank()) ? 4 : 0;
         int amount = Math.max(1, Math.min(config.foodAmount(), ctx.inventory().freeSpace() - reserve));
-        food.withdraw(amount);
+        food.get().withdraw(amount);
         SleepService.sleepUntil(() -> ctx.inventory().hasFood(), 4000);
 
         SleepService.sleep(400, 1000);

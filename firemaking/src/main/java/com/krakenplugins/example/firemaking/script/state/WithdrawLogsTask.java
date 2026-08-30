@@ -36,7 +36,7 @@ public class WithdrawLogsTask extends AbstractTask {
 
     @Override
     public int execute() {
-        BankEntity logs = ctx.bank().withName(config.logName()).first();
+        BankEntity logs = ctx.bank().withName(config.logName()).first().orElse(null);
         if (logs == null) {
             plugin.pauseScript("Out of " + config.logName());
             bankService.close();
@@ -45,7 +45,7 @@ public class WithdrawLogsTask extends AbstractTask {
 
         if (!ctx.inventory().hasItem(ItemID.TINDERBOX)) {
             log.info("Withdrawing Tinderbox");
-            BankEntity tinderbox = ctx.bank().withId(ItemID.TINDERBOX).first();
+            BankEntity tinderbox = ctx.bank().withId(ItemID.TINDERBOX).first().orElse(null);
             if (tinderbox == null) {
                 plugin.pauseScript("No tinderbox in the bank");
                 bankService.close();
@@ -68,7 +68,7 @@ public class WithdrawLogsTask extends AbstractTask {
         SleepService.sleepUntil(() -> ctx.inventory().hasItem(config.logName()), 3000);
 
         if (config.useMouse()) {
-            WidgetEntity closeButton = ctx.widgets().withId(InterfaceID.Bankmain.FRAME).first();
+            WidgetEntity closeButton = ctx.widgets().withId(InterfaceID.Bankmain.FRAME).first().orElse(null);
             if (closeButton != null) {
                 ctx.getMouse().move(closeButton.raw());
             }

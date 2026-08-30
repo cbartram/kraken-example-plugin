@@ -45,7 +45,7 @@ public class OpenFurnaceTask extends AbstractTask {
     public int execute() {
         plugin.setTargetBankBooth(null);
 
-        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE).nearest();
+        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE).nearest().orElse(null);
         if (furnace == null) {
             plugin.halt("Standing in the Edgeville bank with no furnace in the scene");
             return 0;

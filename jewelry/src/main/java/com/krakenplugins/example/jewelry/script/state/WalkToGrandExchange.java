@@ -48,8 +48,8 @@ public class WalkToGrandExchange extends AbstractTask {
             return false;
         }
 
-        return ctx.bank().withId(GOLD_BAR).first() == null
-                || ctx.bank().withId(config.jewelry().getSecondaryGemId()).first() == null;
+        return ctx.bank().withId(GOLD_BAR).first().isEmpty()
+                || ctx.bank().withId(config.jewelry().getSecondaryGemId()).first().isEmpty();
     }
 
     @Override

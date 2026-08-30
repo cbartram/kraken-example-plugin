@@ -48,7 +48,8 @@ public class ChopLogsTask extends AbstractTask {
                 .withName(config.treeName())
                 .withAction(CHOP_ACTION)
                 .reachable()
-                .nearest();
+                .nearest()
+                .orElse(null);
 
         if (tree == null) {
             if (++emptyScans >= MAX_EMPTY_SCANS) {

@@ -38,7 +38,7 @@ public class FishDraynor extends PriorityTask {
             return 0;
         }
 
-        NpcEntity spot = ctx.npcs().withId(FishingLocation.DRAYNOR_VILLAGE.getSpotId()).nearest();
+        NpcEntity spot = ctx.npcs().withId(FishingLocation.DRAYNOR_VILLAGE.getSpotId()).nearest().orElse(null);
         if (spot == null) {
             plugin.setTargetSpot(null);
             log.info("No spot found.");

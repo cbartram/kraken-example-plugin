@@ -39,7 +39,7 @@ public class OpenBankTask extends AbstractTask {
     public int execute() {
         globalPathfinder.clearLastResult();
 
-        GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH).nearest();
+        GameObjectEntity booth = ctx.gameObjects().withId(BANK_BOOTH).nearest().orElse(null);
         if (booth == null) {
             plugin.halt("Standing in the Varrock east bank with no bank booth in the scene");
             return 0;

@@ -42,7 +42,7 @@ public class FishCorsair extends PriorityTask {
             return 0;
         }
 
-        NpcEntity spot = ctx.npcs().withId(FishingLocation.CORSAIR_COVE.getSpotId()).nearest();
+        NpcEntity spot = ctx.npcs().withId(FishingLocation.CORSAIR_COVE.getSpotId()).nearest().orElse(null);
         if (spot == null) {
             plugin.setTargetSpot(null);
             log.info("No spot found.");

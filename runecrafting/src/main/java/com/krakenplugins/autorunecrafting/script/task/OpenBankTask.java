@@ -44,7 +44,7 @@ public class OpenBankTask extends AbstractTask {
 
     @Override
     public int execute() {
-        GameObjectEntity bankBooth = ctx.gameObjects().withAction(BANK_ACTION).reachable().nearest();
+        GameObjectEntity bankBooth = ctx.gameObjects().withAction(BANK_ACTION).reachable().nearest().orElse(null);
 
         if (bankBooth == null) {
             log.info("No reachable bank booth found");

@@ -49,6 +49,6 @@ public class FindTargetTask extends AbstractTask {
     }
 
     private NpcEntity findTarget() {
-        return ctx.npcs().attackable().withName(config.npcTarget()).reachable().nearest();
+        return ctx.npcs().attackable().withName(config.npcTarget()).reachable().nearest().orElse(null);
     }
 }

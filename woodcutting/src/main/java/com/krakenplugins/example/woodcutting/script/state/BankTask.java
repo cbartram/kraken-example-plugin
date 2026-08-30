@@ -36,7 +36,7 @@ public class BankTask extends AbstractTask {
     public int execute() {
         // Found by action rather than object id, so any bank booth works and there is no id to keep
         // in step with the game.
-        GameObjectEntity bankBooth = ctx.gameObjects().withAction(BANK_ACTION).nearest();
+        GameObjectEntity bankBooth = ctx.gameObjects().withAction(BANK_ACTION).nearest().orElse(null);
 
         if (bankBooth == null) {
             plugin.pauseScript("No bank in the scene to deposit logs at");

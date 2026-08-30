@@ -93,7 +93,7 @@ public class FishBarbarianVillage extends PriorityTask {
             idleTicks = 0;
         }
 
-        NpcEntity spot = ctx.npcs().withId(FishingLocation.BARBARIAN_VILLAGE.getSpotId()).nearest();
+        NpcEntity spot = ctx.npcs().withId(FishingLocation.BARBARIAN_VILLAGE.getSpotId()).nearest().orElse(null);
         if (spot == null) {
             plugin.setTargetSpot(null);
             log.info("No spot found.");

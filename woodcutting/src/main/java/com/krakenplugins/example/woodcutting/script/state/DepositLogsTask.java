@@ -38,7 +38,7 @@ public class DepositLogsTask extends AbstractTask {
 
     @Override
     public int execute() {
-        BankInventoryEntity logs = ctx.bankInventory().nameContains(LOG_NAME).random();
+        BankInventoryEntity logs = ctx.bankInventory().nameContains(LOG_NAME).random().orElse(null);
 
         if (logs == null) {
             if (ctx.inventory().isFull()) {

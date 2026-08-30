@@ -32,7 +32,7 @@ public class EnterAltarTask extends AbstractTask {
 
     @Override
     public int execute() {
-        GameObjectEntity ruins = ctx.gameObjects().withId(MYSTERIOUS_RUINS).first();
+        GameObjectEntity ruins = ctx.gameObjects().withId(MYSTERIOUS_RUINS).first().orElse(null);
         if (ruins == null) {
             return 600;
         }

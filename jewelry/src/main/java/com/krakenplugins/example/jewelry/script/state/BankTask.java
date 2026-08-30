@@ -51,7 +51,7 @@ public class BankTask extends AbstractTask {
     public int execute() {
         String necklaceName = config.jewelry().getNecklaceName();
 
-        BankInventoryEntity necklace = ctx.bankInventory().withName(necklaceName).random();
+        BankInventoryEntity necklace = ctx.bankInventory().withName(necklaceName).random().orElse(null);
         if (necklace != null) {
             // Any slot of the stack deposits all of them, so picking one at random keeps the click
             // off the same inventory square every trip.
@@ -72,8 +72,8 @@ public class BankTask extends AbstractTask {
             return 600;
         }
 
-        BankEntity goldBar = ctx.bank().withId(GOLD_BAR).first();
-        BankEntity gem = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
+        BankEntity goldBar = ctx.bank().withId(GOLD_BAR).first().orElse(null);
+        BankEntity gem = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first().orElse(null);
         if (goldBar == null || gem == null) {
             plugin.halt("The bank is out of " + (goldBar == null ? "gold bars" : "gems")
                     + (config.enableResupply() ? "" : " — turn Resupply on to buy more"));
@@ -100,8 +100,8 @@ public class BankTask extends AbstractTask {
             SleepService.sleepGaussian(WITHDRAW_PAUSE_MEAN_MS, WITHDRAW_PAUSE_DEVIATION_MS);
         }
 
-        plugin.getMetrics().setGoldBarsRemaining(Math.max(goldBar.count() - MATERIALS_PER_TRIP, 0));
-        plugin.getMetrics().setGemsRemaining(Math.max(gem.count() - MATERIALS_PER_TRIP, 0));
+        plugin.getMetrics().setGoldBarsRemaining(Math.max(goldBar.getQuantity() - MATERIALS_PER_TRIP, 0));
+        plugin.getMetrics().setGemsRemaining(Math.max(gem.getQuantity() - MATERIALS_PER_TRIP, 0));
 
         return closeBank();
     }
@@ -117,7 +117,7 @@ public class BankTask extends AbstractTask {
             return true;
         }
 
-        BankEntity mould = ctx.bank().withId(ItemID.NECKLACE_MOULD).first();
+        BankEntity mould = ctx.bank().withId(ItemID.NECKLACE_MOULD).first().orElse(null);
         if (mould == null) {
             plugin.halt("No necklace mould in the inventory or the bank");
             return false;

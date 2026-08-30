@@ -31,7 +31,7 @@ public class CraftRunesTask extends AbstractTask {
     @Override
     public int execute() {
         if (hasEssence(ctx)) {
-            GameObjectEntity altar = ctx.gameObjects().withId(AIR_ALTAR).first();
+            GameObjectEntity altar = ctx.gameObjects().withId(AIR_ALTAR).first().orElse(null);
             if (altar == null) {
                 return 600;
             }
@@ -53,7 +53,7 @@ public class CraftRunesTask extends AbstractTask {
             }
         }
 
-        GameObjectEntity portal = ctx.gameObjects().withId(EXIT_PORTAL).first();
+        GameObjectEntity portal = ctx.gameObjects().withId(EXIT_PORTAL).first().orElse(null);
         if (portal == null) {
             log.warn("Exit portal not found inside the air temple");
             return 600;

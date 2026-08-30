@@ -39,7 +39,8 @@ public class BankTask extends AbstractTask {
         NpcEntity banker = ctx.npcs()
                 .withName("Banker")
                 .withAction(BANK_ACTION)
-                .nearest();
+                .nearest()
+                .orElse(null);
 
         if (banker == null) {
             log.debug("No banker with a Bank option nearby");

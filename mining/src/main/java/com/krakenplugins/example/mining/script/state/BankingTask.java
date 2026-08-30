@@ -31,7 +31,7 @@ public class BankingTask extends AbstractTask {
 
     @Override
     public int execute() {
-        BankInventoryEntity iron = ctx.bankInventory().withId(ItemID.IRON_ORE).first();
+        BankInventoryEntity iron = ctx.bankInventory().withId(ItemID.IRON_ORE).first().orElse(null);
         if (iron == null) {
             plugin.halt("Inventory is full but holds no iron ore to deposit");
             return 0;
@@ -46,7 +46,7 @@ public class BankingTask extends AbstractTask {
         }
 
         BankInventoryEntity gem;
-        while ((gem = ctx.bankInventory().nameContains("Uncut").first()) != null) {
+        while ((gem = ctx.bankInventory().nameContains("Uncut").first().orElse(null)) != null) {
             final int before = ctx.inventory().nameContains("Uncut").list().size();
             plugin.moveMouseTo(gem.raw());
             gem.depositAll();

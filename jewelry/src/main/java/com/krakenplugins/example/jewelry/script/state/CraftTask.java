@@ -60,7 +60,7 @@ public class CraftTask extends AbstractTask {
 
         if (isCraftingInterfaceOpen()) {
             WidgetEntity necklace = ctx.widgets().get(config.jewelry().getWidgetId());
-            if (necklace == null || necklace.isNull()) {
+            if (necklace == null) {
                 plugin.halt("The crafting interface has no " + config.jewelry().getNecklaceName() + " to make");
                 return 0;
             }
@@ -83,7 +83,7 @@ public class CraftTask extends AbstractTask {
             return CRAFTING_POLL_MS;
         }
 
-        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE).nearest();
+        GameObjectEntity furnace = ctx.gameObjects().withId(FURNACE).nearest().orElse(null);
         if (furnace == null) {
             plugin.halt("Standing at the Edgeville furnace with no furnace in the scene");
             return 0;

@@ -68,7 +68,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
                 return 600;
             }
 
-            NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest();
+            NpcEntity clerk = ctx.npcs().withAction("Exchange").nearest().orElse(null);
             if (clerk == null || !clerk.interact("Exchange")) {
                 plugin.halt("No Grand Exchange clerk to trade with");
                 return 0;
@@ -105,7 +105,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
      *         Anything the trip cannot recover from halts the script instead.
      */
     private boolean prepareBank() {
-        NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
+        NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
         if (banker == null || !banker.interact("Bank")) {
             plugin.halt("No Grand Exchange banker to bank with");
             return false;
@@ -122,11 +122,11 @@ public class PurchaseSuppliesTask extends AbstractTask {
         }
 
         // Check supplies in bank
-        BankEntity goldBars = ctx.bank().withId(JewelryScript.GOLD_BAR).first();
-        bankGoldBars = goldBars != null ? goldBars.count() : 0;
+        BankEntity goldBars = ctx.bank().withId(JewelryScript.GOLD_BAR).first().orElse(null);
+        bankGoldBars = goldBars != null ? goldBars.getQuantity() : 0;
 
-        BankEntity gems = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first();
-        bankGems = gems != null ? gems.count() : 0;
+        BankEntity gems = ctx.bank().withId(config.jewelry().getSecondaryGemId()).first().orElse(null);
+        bankGems = gems != null ? gems.getQuantity() : 0;
 
         // Another trip already stocked the bank, so head home rather than buying more.
         if (bankGoldBars > 0 && bankGems > 0) {
@@ -136,8 +136,8 @@ public class PurchaseSuppliesTask extends AbstractTask {
         }
 
         // Withdraw crafted jewelry to sell. Noted, so a full trip's worth fits in one slot.
-        BankEntity crafted = ctx.bank().withId(config.jewelry().getCraftedItemId()).first();
-        if (crafted != null && crafted.count() > 0) {
+        BankEntity crafted = ctx.bank().withId(config.jewelry().getCraftedItemId()).first().orElse(null);
+        if (crafted != null && crafted.getQuantity() > 0) {
             crafted.withdrawAllNoted();
             SleepService.sleepFor(1);
         }
@@ -148,7 +148,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
 
     private void sellCraftedItems() {
         // Noted and unnoted share a name but not an id, so the item's own id is what the offer needs.
-        InventoryEntity crafted = ctx.inventory().withName(config.jewelry().getNecklaceName()).noted().first();
+        InventoryEntity crafted = ctx.inventory().withName(config.jewelry().getNecklaceName()).noted().first().orElse(null);
         if (crafted == null) {
             log.info("No crafted items in inventory to sell.");
             return;
@@ -296,7 +296,7 @@ public class PurchaseSuppliesTask extends AbstractTask {
      *         script go home and craft.
      */
     private boolean depositAndVerify() {
-        NpcEntity banker = ctx.npcs().withAction("Bank").nearest();
+        NpcEntity banker = ctx.npcs().withAction("Bank").nearest().orElse(null);
         if (banker == null || !banker.interact("Bank")) {
             log.error("Could not reach a banker to deposit the purchase into");
             return false;
@@ -310,8 +310,8 @@ public class PurchaseSuppliesTask extends AbstractTask {
         bankService.depositAll();
         SleepService.sleepFor(1);
 
-        boolean stocked = ctx.bank().withId(JewelryScript.GOLD_BAR).first() != null
-                && ctx.bank().withId(config.jewelry().getSecondaryGemId()).first() != null;
+        boolean stocked = ctx.bank().withId(JewelryScript.GOLD_BAR).first().isPresent()
+                && ctx.bank().withId(config.jewelry().getSecondaryGemId()).first().isPresent();
 
         closeBank();
         return stocked;

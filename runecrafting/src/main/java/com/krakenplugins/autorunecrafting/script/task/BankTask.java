@@ -44,10 +44,10 @@ public class BankTask extends AbstractTask {
             return 600;
         }
 
-        BankEntity essence = ctx.bank().withId(PURE_ESSENCE).first();
+        BankEntity essence = ctx.bank().withId(PURE_ESSENCE).first().orElse(null);
         if (essence == null) {
             log.info("Pure essence not found in bank. Using rune essence");
-            essence = ctx.bank().withId(RUNE_ESSENCE).first();
+            essence = ctx.bank().withId(RUNE_ESSENCE).first().orElse(null);
         }
 
         if (essence == null) {
@@ -73,7 +73,7 @@ public class BankTask extends AbstractTask {
             return true;
         }
 
-        BankEntity tiara = ctx.bank().withId(AIR_TIARA).first();
+        BankEntity tiara = ctx.bank().withId(AIR_TIARA).first().orElse(null);
         if (tiara == null) {
             plugin.pauseScript("No air tiara in the bank, one is needed to enter the ruins");
             bankService.close();
@@ -84,7 +84,7 @@ public class BankTask extends AbstractTask {
         tiara.withdrawOne();
 
         BankInventoryEntity withdrawn = SleepService.sleepUntilNotNull(
-                () -> ctx.bankInventory().withId(AIR_TIARA).first(), ACTION_TIMEOUT_MS);
+                () -> ctx.bankInventory().withId(AIR_TIARA).first().orElse(null), ACTION_TIMEOUT_MS);
 
         if (withdrawn == null) {
             log.warn("Air tiara did not arrive in the inventory");

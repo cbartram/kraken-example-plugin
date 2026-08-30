@@ -89,7 +89,8 @@ public class CookFish extends PriorityTask {
         GameObjectEntity fire = ctx.gameObjects()
                 .filter(o -> o.getId() == ObjectID.FIRE_COOK || o.getId() == ObjectID.FIRE)
                 .within(FIRE_RADIUS)
-                .nearest();
+                .nearest()
+                .orElse(null);
 
         if (fire != null && fire.interact("Cook")) {
             idleTicks = 0;

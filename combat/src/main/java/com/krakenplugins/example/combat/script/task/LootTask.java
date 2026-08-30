@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.coords.WorldPoint;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,15 +55,15 @@ public class LootTask extends AbstractTask {
     }
 
     private GroundObjectEntity findLoot() {
-        GroundObjectEntity valuable = ctx.groundItems()
+        Optional<GroundObjectEntity> valuable = ctx.groundItems()
                 .filter(g -> g.raw().isOwnedByLocalPlayer())
                 .stackValueAbove(config.lootValueThreshold())
                 .reachable()
                 .nearest();
 
 
-        if (valuable != null) {
-            return valuable;
+        if (valuable.isPresent()) {
+            return valuable.get();
         }
 
         Set<Integer> ids = lootIds();
@@ -73,7 +74,8 @@ public class LootTask extends AbstractTask {
                 .filter(g -> g.raw().isOwnedByLocalPlayer())
                 .filter(g -> ids.contains(g.getId()))
                 .reachable()
-                .nearest();
+                .nearest()
+                .orElse(null);
     }
 
     private Set<Integer> lootIds() {

@@ -42,7 +42,7 @@ public class FishKaramja extends PriorityTask {
             return 0;
         }
 
-        NpcEntity spot = ctx.npcs().withId(FishingLocation.KARAMJA.getSpotId()).nearest();
+        NpcEntity spot = ctx.npcs().withId(FishingLocation.KARAMJA.getSpotId()).nearest().orElse(null);
         if (spot == null) {
             plugin.setTargetSpot(null);
             log.info("No spot found.");

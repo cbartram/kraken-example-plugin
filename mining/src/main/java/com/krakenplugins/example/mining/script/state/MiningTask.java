@@ -73,7 +73,8 @@ public class MiningTask extends AbstractTask {
     private GameObjectEntity findRock() {
         GameObjectEntity rock = ctx.gameObjects()
                 .filter(object -> IRON_ROCKS.contains(object.getId()) && object.isInArea(plugin.getMiningArea()))
-                .nearest();
+                .nearest()
+                .orElse(null);
 
         if (rock == null) {
             boolean respawning = !ctx.gameObjects()
